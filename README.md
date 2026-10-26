@@ -76,12 +76,10 @@ ausente, sem internet), o motivo aparece ali.
 
 O GitHub Actions (`.github/workflows/build-exe.yml`) roda os testes, monta o `.exe` num
 Windows com o PyInstaller (`PromoHunter.spec`), abre o programa para conferir se o servidor
-responde e guarda o arquivo. Para publicar uma versão na página Releases, crie uma tag:
+responde e guarda o arquivo.
 
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
+Para publicar uma versão na página Releases: aba **Actions** → **Gerar PromoHunter.exe** →
+**Run workflow** → preencha a versão (ex.: `v1.0.1`). Também funciona enviando uma tag `v*`.
 
 Para gerar manualmente num Windows: `pip install -r requirements.txt pyinstaller` e
 `pyinstaller PromoHunter.spec` — o arquivo sai em `dist\PromoHunter.exe`.
