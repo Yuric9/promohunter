@@ -46,12 +46,31 @@ Janelinha de controle:
 `./run.sh` (Linux/macOS) ou `run.bat` (Windows) e acesse http://localhost:8000.
 A documentação técnica das rotas fica em http://localhost:8000/docs.
 
+## Ativando a Shopee Afiliados
+
+Com a API de Afiliados a busca na Shopee para de ser bloqueada **e os links enviados
+viram links de afiliado** (você ganha comissão nas vendas).
+
+1. Cadastre-se em https://affiliate.shopee.com.br/ e aguarde a aprovação.
+2. No painel de afiliado, abra **Open API** e solicite acesso. Você recebe um **AppID** e
+   uma **Secret**.
+3. Na janelinha do PromoHunter clique em **Configurações** e preencha:
+   ```
+   SHOPEE_APP_ID=seu_app_id
+   SHOPEE_SECRET=sua_secret
+   ```
+4. Salve o arquivo, clique em **Desligar** e abra o PromoHunter de novo.
+5. No painel, a seção **Integrações** deve mostrar ✅ Shopee Afiliados.
+
+> Nunca compartilhe a Secret com ninguém nem coloque no GitHub — ela fica só no `.env`.
+
 ## Configuração (.env)
 
 | Variável | Para que serve |
 |---|---|
 | `API_KEY` | Chave exigida no header `X-API-Key`. Gerada sozinha pelo `PromoHunter.pyw`. |
 | `CORS_ORIGINS` | Sites que podem chamar a API (separados por vírgula). |
+| `SHOPEE_APP_ID` / `SHOPEE_SECRET` | Chaves da API de Afiliados da Shopee (links de afiliado). |
 | `ML_ACCESS_TOKEN` | Token OAuth do Mercado Livre (a busca pública pode recusar sem ele). |
 | `EVOLUTION_*` | Dados da sua instância da Evolution API. |
 | `WHATSAPP_DEFAULT_NUMBER` / `WHATSAPP_DEFAULT_GROUP_ID` | Destino padrão das mensagens. |
@@ -95,8 +114,7 @@ Os testes usam dados falsos, então não precisam de internet nem de WhatsApp.
 
 ## Limitações conhecidas
 
-- A **Shopee** bloqueia buscas automatizadas com frequência. Para algo estável, use a
-  [API de afiliados da Shopee](https://affiliate.shopee.com.br/).
+- Sem as chaves de afiliado, a **Shopee** bloqueia a busca (403). Veja "Ativando a Shopee Afiliados".
 - O **Mercado Livre** pode exigir token OAuth: crie um app em
   https://developers.mercadolivre.com.br/ e coloque o token em `ML_ACCESS_TOKEN`.
 - A automação só roda enquanto o PromoHunter estiver aberto e o computador ligado.

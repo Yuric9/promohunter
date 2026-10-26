@@ -95,3 +95,76 @@ def test_erro_de_conexao_vira_mensagem_amigavel(monkeypatch):
     monkeypatch.setattr(busca, "FONTES", {"Shopee": sem_internet})
     r = client.get("/api/promocoes/buscar", params={"q": "ps5"}, headers=AUTH).json()
     assert r["avisos"] == ["Shopee: não foi possível conectar. Verifique sua internet."]
+
+
+def test_shopee_afiliados_assina_e_converte(monkeypatch):
+    import hashlib
+    import json as _json
+
+    from app.services import shopee
+
+    monkeypatch.setattr(settings, "shopee_app_id", "123")
+    monkeypatch.setattr(settings, "shopee_secret", "abc")
+    capturado = {}
+
+    class Resposta:
+        status_code = 200
+        content = b"x"
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"data": {"productOfferV2": {"nodes": [{
+                "productName": "Air Fryer", "priceMin": "300.00", "priceDiscountRate": 25, "sales": 1500,
+                "ratingStar": "4.8", "imageUrl": "https://img/x.jpg", "shopName": "Loja",
+                "productLink": "https://shopee.com.br/p", "offerLink": "https://s.shopee.com.br/afiliado",
+            }]}}}
+
+    def falso_post(url, data, headers, timeout):
+        capturado.update(url=url, corpo=data.decode(), auth=headers["Authorization"])
+        return Resposta()
+
+    monkeypatch.setattr(shopee.requests, "post", falso_post)
+    produtos = shopee.buscar_shopee('air "fryer"', 5)
+
+    assert capturado["url"].endswith("affiliate.shopee.com.br/graphql")
+    assert 'keyword: "air \\"fryer\\""' in _json.loads(capturado["corpo"])["query"]
+    ts = capturado["auth"].split("Timestamp=")[1].split(",")[0]
+    esperado = hashlib.sha256(f"123{ts}{capturado['corpo']}abc".encode()).hexdigest()
+    assert capturado["auth"] == f"SHA256 Credential=123, Timestamp={ts}, Signature={esperado}"
+
+    p = produtos[0]
+    assert (p.preco, p.desconto, p.preco_original, p.vendidos) == (300.0, 25, 400.0, 1500)
+    assert p.link == "https://s.shopee.com.br/afiliado"
+
+
+def test_shopee_afiliados_erro_vira_mensagem(monkeypatch):
+    import pytest as _pytest
+
+    from app.services import shopee
+
+    monkeypatch.setattr(settings, "shopee_app_id", "123")
+    monkeypatch.setattr(settings, "shopee_secret", "errada")
+
+    class Resposta:
+        status_code = 200
+        content = b"x"
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"errors": [{"message": "Invalid Signature", "extensions": {"code": 10020}}]}
+
+    monkeypatch.setattr(shopee.requests, "post", lambda *a, **k: Resposta())
+    with _pytest.raises(RuntimeError, match="10020.*Invalid Signature"):
+        shopee.buscar_shopee("ps5")
+
+
+def test_integracoes_nao_revela_chaves(monkeypatch):
+    monkeypatch.setattr(settings, "shopee_app_id", "123")
+    monkeypatch.setattr(settings, "shopee_secret", "segredo-shopee")
+    r = client.get("/api/integracoes", headers=AUTH)
+    assert r.json()["shopee_afiliados"] is True
+    assert "segredo-shopee" not in r.text

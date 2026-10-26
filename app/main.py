@@ -48,6 +48,16 @@ def saude():
     return {"status": "PromoHunter rodando", "docs": "/docs"}
 
 
+@app.get("/api/integracoes", dependencies=[Depends(exigir_api_key)])
+def integracoes():
+    """Mostra no painel quais chaves foram preenchidas no .env (sem revelar os valores)."""
+    return {
+        "shopee_afiliados": bool(settings.shopee_app_id and settings.shopee_secret),
+        "mercado_livre": bool(settings.ml_access_token),
+        "whatsapp": bool(settings.evolution_api_key and settings.evolution_api_key != "sua-key"),
+    }
+
+
 @app.get("/api/configuracoes", dependencies=[Depends(exigir_api_key)])
 def get_config():
     return load_config()

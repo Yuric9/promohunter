@@ -45,11 +45,22 @@
   .msg.ok { color: var(--ok); } .msg.erro { color: var(--erro); }
   .status { font-weight: 600; }
   a { color: var(--primaria); }
+  .integracoes { display: flex; gap: 8px; flex-wrap: wrap; }
+  .integracao { font-size: .85rem; padding: 4px 10px; border-radius: 99px; border: 1px solid var(--borda); }
+  .integracao.on { border-color: var(--ok); color: var(--ok); }
+  .dica { font-size: .8rem; color: var(--suave); margin: 8px 0 0; }
 </style>
 </head>
 <body>
 <header><h1>🔥 PromoHunter</h1></header>
 <main>
+  <section>
+    <h2>Integrações</h2>
+    <div id="integracoes" class="integracoes"></div>
+    <p class="dica">Para ativar: na janelinha do PromoHunter clique em <strong>Configurações</strong>,
+      preencha as chaves, salve e clique em <strong>Desligar</strong> e abra o programa de novo.</p>
+  </section>
+
   <section>
     <h2>Buscar ofertas</h2>
     <form id="form-busca" class="linha">
@@ -212,6 +223,16 @@
     atualizarStatus();
   });
 
+  async function carregarIntegracoes() {
+    const nomes = { shopee_afiliados: "Shopee Afiliados", mercado_livre: "Mercado Livre", whatsapp: "WhatsApp (Evolution)" };
+    try {
+      const st = await api("/api/integracoes");
+      $("integracoes").innerHTML = Object.entries(nomes).map(([k, nome]) =>
+        `<span class="integracao ${st[k] ? "on" : ""}">${st[k] ? "✅" : "⚪"} ${nome}</span>`).join("");
+    } catch (err) { $("integracoes").textContent = err.message; }
+  }
+
+  carregarIntegracoes();
   carregarConfig();
   atualizarStatus();
   setInterval(atualizarStatus, 30000);

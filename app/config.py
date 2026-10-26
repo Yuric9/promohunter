@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     ml_country: str = "MLB"
     ml_access_token: str = ""
 
+    shopee_app_id: str = ""
+    shopee_secret: str = ""
+
     whatsapp_provider: str = "evolution"
     evolution_api_url: str = "http://localhost:8080"
     evolution_api_key: str = ""
