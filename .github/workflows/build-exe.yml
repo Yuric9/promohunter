@@ -1,0 +1,62 @@
+name: Gerar PromoHunter.exe
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt
+      - run: pytest -q
+
+  exe:
+    needs: testes
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt pyinstaller
+      - run: pyinstaller --noconfirm PromoHunter.spec
+
+      - name: Abrir o .exe e conferir se o servidor responde
+        shell: pwsh
+        run: |
+          $pasta = "dist"
+          $proc = Start-Process "$pasta\PromoHunter.exe" -WorkingDirectory $pasta -PassThru
+          $ok = $false
+          for ($i = 0; $i -lt 60; $i++) {
+            Start-Sleep -Seconds 1
+            try {
+              $r = Invoke-RestMethod http://127.0.0.1:8000/saude -TimeoutSec 2
+              if ($r.status) { $ok = $true; break }
+            } catch {}
+          }
+          if (Test-Path "$pasta\promohunter.log") { Get-Content "$pasta\promohunter.log" }
+          Stop-Process -Id $proc.Id -Force
+          if (-not $ok) { throw "O servidor dentro do .exe nao respondeu" }
+          Remove-Item "$pasta\.env", "$pasta\promohunter.log", "$pasta\data" -Recurse -ErrorAction SilentlyContinue
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PromoHunter-windows
+          path: dist/PromoHunter.exe
+
+      - name: Publicar na página de Releases
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/PromoHunter.exe

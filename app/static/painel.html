@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PromoHunter</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --texto: #1d2330; --suave: #667085; --borda: #e3e6eb;
+    --primaria: #e8590c; --primaria-texto: #ffffff; --ok: #2b8a3e; --erro: #c92a2a; --aviso-bg: #fff4e6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151b; --card: #1b2029; --texto: #e7eaf0; --suave: #98a2b3; --borda: #2c3340;
+      --primaria: #ff7a2e; --primaria-texto: #12151b; --ok: #51cf66; --erro: #ff6b6b; --aviso-bg: #3a2a17;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, "Segoe UI", sans-serif; background: var(--bg); color: var(--texto); }
+  header { padding: 18px 16px; border-bottom: 1px solid var(--borda); background: var(--card); }
+  header h1 { margin: 0; font-size: 1.3rem; }
+  main { max-width: 1000px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+  section { background: var(--card); border: 1px solid var(--borda); border-radius: 12px; padding: 16px; }
+  h2 { margin: 0 0 12px; font-size: 1.05rem; }
+  label { display: block; font-size: .85rem; color: var(--suave); margin-bottom: 4px; }
+  input, textarea { width: 100%; padding: 9px 10px; border: 1px solid var(--borda); border-radius: 8px;
+    background: var(--bg); color: var(--texto); font: inherit; }
+  button { padding: 9px 14px; border: 0; border-radius: 8px; background: var(--primaria); color: var(--primaria-texto);
+    font: inherit; font-weight: 600; cursor: pointer; }
+  button.secundario { background: transparent; color: var(--texto); border: 1px solid var(--borda); }
+  button:disabled { opacity: .6; cursor: wait; }
+  .linha { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
+  .linha > .cresce { flex: 1 1 220px; }
+  .grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 12px; }
+  .ofertas { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 12px; }
+  .oferta { border: 1px solid var(--borda); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .oferta img { width: 100%; height: 140px; object-fit: contain; background: #fff; border-radius: 6px; }
+  .oferta .titulo { font-size: .85rem; line-height: 1.3; max-height: 3.9em; overflow: hidden; }
+  .preco { font-weight: 700; font-size: 1.1rem; }
+  .riscado { text-decoration: line-through; color: var(--suave); font-size: .8rem; }
+  .selo { display: inline-block; font-size: .75rem; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--borda); }
+  .desconto { background: var(--primaria); color: var(--primaria-texto); border: 0; }
+  .avisos { background: var(--aviso-bg); border-radius: 8px; padding: 10px; font-size: .85rem; margin-top: 12px; }
+  .msg { font-size: .9rem; margin-top: 8px; min-height: 1.2em; }
+  .msg.ok { color: var(--ok); } .msg.erro { color: var(--erro); }
+  .status { font-weight: 600; }
+  a { color: var(--primaria); }
+</style>
+</head>
+<body>
+<header><h1>🔥 PromoHunter</h1></header>
+<main>
+  <section>
+    <h2>Buscar ofertas</h2>
+    <form id="form-busca" class="linha">
+      <div class="cresce"><label for="q">Produto</label><input id="q" placeholder="ex.: air fryer" required></div>
+      <div style="width:130px"><label for="dmin">Desconto mín. (%)</label><input id="dmin" type="number" min="0" max="100" value="0"></div>
+      <button type="submit">Buscar</button>
+      <button type="button" class="secundario" id="btn-enviar">Enviar melhor no WhatsApp</button>
+    </form>
+    <div id="msg-busca" class="msg"></div>
+    <div id="avisos-busca"></div>
+    <div id="ofertas" class="ofertas"></div>
+  </section>
+
+  <section>
+    <h2>Automação</h2>
+    <p>Status: <span id="status-auto" class="status">—</span></p>
+    <div class="linha">
+      <button id="btn-iniciar">Iniciar</button>
+      <button id="btn-parar" class="secundario">Parar</button>
+    </div>
+    <div id="msg-auto" class="msg"></div>
+  </section>
+
+  <section>
+    <h2>Configurações da automação</h2>
+    <form id="form-config">
+      <label for="termos">Produtos monitorados (um por linha)</label>
+      <textarea id="termos" rows="4"></textarea>
+      <div class="grade" style="margin-top:12px">
+        <div><label for="preco_min">Preço mínimo (R$)</label><input id="preco_min" type="number" min="0" step="0.01"></div>
+        <div><label for="preco_max">Preço máximo (R$)</label><input id="preco_max" type="number" min="1" step="0.01"></div>
+        <div><label for="desconto_min">Desconto mínimo (%)</label><input id="desconto_min" type="number" min="0" max="100"></div>
+        <div><label for="intervalo_minutos">Intervalo (min)</label><input id="intervalo_minutos" type="number" min="5"></div>
+        <div><label for="whatsapp_numero">Número WhatsApp</label><input id="whatsapp_numero" placeholder="5562999999999"></div>
+        <div><label for="whatsapp_grupo_id">ID do grupo (opcional)</label><input id="whatsapp_grupo_id"></div>
+      </div>
+      <button type="submit">Salvar</button>
+    </form>
+    <div id="msg-config" class="msg"></div>
+  </section>
+</main>
+
+<script>
+  // A chave chega pelo link aberto pelo PromoHunter.pyw (#chave=...) e fica salva no navegador.
+  const hash = new URLSearchParams(location.hash.slice(1));
+  if (hash.get("chave") !== null) {
+    try { localStorage.setItem("promohunter_chave", hash.get("chave")); } catch (e) {}
+    history.replaceState(null, "", location.pathname);
+  }
+  function chave() {
+    try { return localStorage.getItem("promohunter_chave") || ""; } catch (e) { return ""; }
+  }
+
+  async function api(caminho, opcoes = {}) {
+    const r = await fetch(caminho, {
+      ...opcoes,
+      headers: { "X-API-Key": chave(), "Content-Type": "application/json", ...(opcoes.headers || {}) },
+    });
+    if (r.status === 401) throw new Error("Chave inválida. Abra o painel pelo botão do PromoHunter.");
+    if (!r.ok) throw new Error(`Erro ${r.status}`);
+    return r.json();
+  }
+
+  const $ = (id) => document.getElementById(id);
+  function mensagem(id, texto, tipo = "") { const el = $(id); el.textContent = texto; el.className = "msg " + tipo; }
+  const brl = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  function esc(s) { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; }
+
+  function mostrarAvisos(avisos) {
+    $("avisos-busca").innerHTML = avisos && avisos.length
+      ? `<div class="avisos"><strong>⚠️ Avisos:</strong><br>${avisos.map(esc).join("<br>")}</div>` : "";
+  }
+
+  function cartao(p) {
+    const link = /^https?:\/\//.test(p.link) ? p.link : "#";
+    return `<div class="oferta">
+      ${p.imagem ? `<img src="${esc(p.imagem)}" alt="" loading="lazy">` : ""}
+      <div><span class="selo">${esc(p.plataforma)}</span> ${p.desconto ? `<span class="selo desconto">${p.desconto}% OFF</span>` : ""}</div>
+      <div class="titulo">${esc(p.titulo)}</div>
+      ${p.preco_original ? `<div class="riscado">${brl(p.preco_original)}</div>` : ""}
+      <div class="preco">${brl(p.preco)}</div>
+      <a href="${esc(link)}" target="_blank" rel="noopener">Ver oferta ↗</a>
+    </div>`;
+  }
+
+  $("form-busca").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const botao = e.submitter; botao.disabled = true;
+    mensagem("msg-busca", "Buscando...");
+    try {
+      const params = new URLSearchParams({ q: $("q").value, desconto_min: $("dmin").value || 0 });
+      const r = await api(`/api/promocoes/buscar?${params}`);
+      mensagem("msg-busca", `${r.total} ofertas encontradas`, r.total ? "ok" : "");
+      mostrarAvisos(r.avisos);
+      $("ofertas").innerHTML = r.ofertas.map(cartao).join("");
+    } catch (err) { mensagem("msg-busca", err.message, "erro"); }
+    botao.disabled = false;
+  });
+
+  $("btn-enviar").addEventListener("click", async () => {
+    if (!$("q").value) { mensagem("msg-busca", "Digite um produto primeiro", "erro"); return; }
+    const botao = $("btn-enviar"); botao.disabled = true;
+    mensagem("msg-busca", "Buscando e enviando...");
+    try {
+      const params = new URLSearchParams({ q: $("q").value, desconto_min: $("dmin").value || 0 });
+      const r = await api(`/api/whatsapp/enviar?${params}`, { method: "POST" });
+      mostrarAvisos(r.avisos);
+      if (r.erro) mensagem("msg-busca", "Nenhuma oferta para enviar", "erro");
+      else if (r.whatsapp.ok) mensagem("msg-busca", "✅ Enviado para o WhatsApp!", "ok");
+      else mensagem("msg-busca", "Falha no WhatsApp: " + r.whatsapp.erro, "erro");
+    } catch (err) { mensagem("msg-busca", err.message, "erro"); }
+    botao.disabled = false;
+  });
+
+  const CAMPOS = ["preco_min", "preco_max", "desconto_min", "intervalo_minutos", "whatsapp_numero", "whatsapp_grupo_id"];
+
+  async function carregarConfig() {
+    try {
+      const c = await api("/api/configuracoes");
+      $("termos").value = c.termos.join("\n");
+      CAMPOS.forEach((k) => { $(k).value = c[k] ?? ""; });
+    } catch (err) { mensagem("msg-config", err.message, "erro"); }
+  }
+
+  $("form-config").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const corpo = {
+      termos: $("termos").value.split("\n").map((t) => t.trim()).filter(Boolean),
+      preco_min: Number($("preco_min").value || 0),
+      preco_max: Number($("preco_max").value || 10000),
+      desconto_min: Number($("desconto_min").value || 0),
+      intervalo_minutos: Number($("intervalo_minutos").value || 30),
+      whatsapp_numero: $("whatsapp_numero").value || null,
+      whatsapp_grupo_id: $("whatsapp_grupo_id").value || null,
+    };
+    try {
+      await api("/api/configuracoes", { method: "POST", body: JSON.stringify(corpo) });
+      mensagem("msg-config", "✅ Configurações salvas", "ok");
+      atualizarStatus();
+    } catch (err) { mensagem("msg-config", err.message + " (confira os valores)", "erro"); }
+  });
+
+  async function atualizarStatus() {
+    try {
+      const s = await api("/api/automacao/status");
+      $("status-auto").textContent = s.rodando
+        ? `Ligada — próxima busca ${new Date(s.proxima_execucao).toLocaleTimeString("pt-BR")}` : "Desligada";
+      $("status-auto").style.color = s.rodando ? "var(--ok)" : "var(--suave)";
+    } catch (err) { $("status-auto").textContent = err.message; }
+  }
+
+  $("btn-iniciar").addEventListener("click", async () => {
+    try { const r = await api("/api/automacao/iniciar", { method: "POST" }); mensagem("msg-auto", r.msg, "ok"); }
+    catch (err) { mensagem("msg-auto", err.message, "erro"); }
+    atualizarStatus();
+  });
+  $("btn-parar").addEventListener("click", async () => {
+    try { const r = await api("/api/automacao/parar", { method: "POST" }); mensagem("msg-auto", r.msg); }
+    catch (err) { mensagem("msg-auto", err.message, "erro"); }
+    atualizarStatus();
+  });
+
+  carregarConfig();
+  atualizarStatus();
+  setInterval(atualizarStatus, 30000);
+</script>
+</body>
+</html>
