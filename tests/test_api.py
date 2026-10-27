@@ -256,3 +256,20 @@ def test_telegram_sem_configuracao(monkeypatch):
 
     monkeypatch.setattr(settings, "telegram_bot_token", "")
     assert telegram.enviar_telegram("oi")["ok"] is False
+
+
+def test_telegram_chat_not_found_explica_o_problema(monkeypatch):
+    from app.services import telegram
+
+    monkeypatch.setattr(settings, "telegram_bot_token", "123:ABC")
+    monkeypatch.setattr(settings, "telegram_chat_id", "@errado")
+    chamadas = []
+
+    def falso_post(url, json, timeout):
+        chamadas.append(url)
+        return RespostaFalsa({"ok": False, "description": "Bad Request: chat not found"})
+
+    monkeypatch.setattr(telegram.requests, "post", falso_post)
+    r = telegram.enviar_telegram("oi", "https://img/x.jpg")
+    assert r["ok"] is False and "link público do canal" in r["erro"]
+    assert len(chamadas) == 1  # não tenta de novo sem a foto

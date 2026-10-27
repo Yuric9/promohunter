@@ -31,11 +31,27 @@ def formatar_mensagem(comp: Comparativo) -> str:
     )
 
 
+DICAS = {
+    "chat not found": "o TELEGRAM_CHAT_ID não corresponde ao canal. Use o link público do canal com @ "
+                      "(ex.: @promos_do_yuri), e não o nome do robô",
+    "unauthorized": "o TELEGRAM_BOT_TOKEN está errado ou foi trocado no /revoke",
+    "not enough rights": "o robô não é administrador do canal com permissão de publicar",
+    "bot is not a member": "o robô não foi adicionado ao canal",
+}
+
+
+def _explicar(erro: str) -> str:
+    for trecho, dica in DICAS.items():
+        if trecho in erro.lower():
+            return f"{erro} → {dica}"
+    return erro
+
+
 def _chamar(metodo: str, dados: dict) -> dict:
     r = requests.post(API.format(token=settings.telegram_bot_token, metodo=metodo), json=dados, timeout=15)
     resposta = r.json() if r.content else {}
     if not resposta.get("ok"):
-        raise RuntimeError(resposta.get("description") or f"HTTP {r.status_code}")
+        raise RuntimeError(_explicar(resposta.get("description") or f"HTTP {r.status_code}"))
     return resposta
 
 
@@ -49,8 +65,10 @@ def enviar_telegram(texto: str, imagem: str = "") -> dict:
             try:
                 _chamar("sendPhoto", {**base, "photo": imagem, "caption": texto})
                 return {"ok": True}
-            except RuntimeError:
-                pass  # imagem recusada pelo Telegram: manda só o texto
+            except RuntimeError as e:
+                if "→" in str(e):
+                    raise  # erro de configuração: não adianta tentar sem a foto
+                # imagem recusada pelo Telegram: manda só o texto
         _chamar("sendMessage", {**base, "text": texto})
         return {"ok": True}
     except Exception as e:

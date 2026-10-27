@@ -314,7 +314,10 @@ def main() -> int:
     resumo = executar(cfg, simular)
     verbo = "seria(m) postada(s) (simulação)" if simular else "postada(s)"
     log.info("\nResumo: %d oferta(s) %s, %d repetida(s), %d erro(s).", resumo["postados"], verbo, resumo["repetidos"], resumo["erros"])
-    return 1 if resumo["erros"] and resumo["erros"] == total else 0
+    if resumo["erros"] and not resumo["postados"]:
+        log.error("Nada foi postado e houve erros: veja as mensagens ❌ acima.")
+        return 1  # marca a execução como falha no GitHub (que avisa por e-mail)
+    return 0
 
 
 if __name__ == "__main__":
