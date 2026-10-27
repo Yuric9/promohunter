@@ -16,6 +16,11 @@ body:
       required: true
   - type: input
     attributes:
+      label: Preço mínimo (R$)
+      description: Ignora o que for mais barato que isso (evita capinhas, películas e acessórios).
+      placeholder: "3000"
+  - type: input
+    attributes:
       label: Preço máximo (R$)
       description: Deixe vazio para sem limite.
       placeholder: "400"

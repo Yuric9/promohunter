@@ -302,7 +302,8 @@ def descrever(tipo: str, item, hoje: date) -> str:
         return (f"🏨 **{item.local}**, de {_data(entrada)} a {_data(saida)} ({item.noites} noites, {item.adultos} adultos).\n"
                 f"Diária até {preco(item.diaria_max)}, nota mínima {item.nota_min or 'qualquer'}.")
     if tipo == "produto":
-        return f"🛒 **{item.termo}**, até {preco(item.preco_max)}, desconto mínimo de {item.desconto_min}%."
+        faixa = f"de {_brl(item.preco_min)} " if item.preco_min else ""
+        return f"🛒 **{item.termo}**, {faixa}até {preco(item.preco_max)}, desconto mínimo de {item.desconto_min}%."
     return (f"📢 **{item.titulo}**: posts dos últimos {item.ultimos_dias} dias em {len(item.feeds)} blog(s)"
             + (f", com as palavras: {', '.join(item.palavras)}." if item.palavras else "."))
 

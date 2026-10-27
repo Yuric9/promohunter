@@ -173,3 +173,10 @@ def test_oferta_postada_tambem_e_avisada_no_formulario(github_falso, monkeypatch
     monitor.executar(cfg, hoje=HOJE)
     numero, texto = github_falso["comentarios"][0]
     assert numero == 12 and "Nova oferta" in texto and "[Pousada Boa](https://b)" in texto
+
+
+def test_formulario_de_produto_com_preco_minimo():
+    corpo = "### Produto\n\niphone 17\n\n### Preço mínimo (R$)\n\n3.000\n\n### Preço máximo (R$)\n\n_No response_\n\n### Desconto mínimo (%)\n\n0\n"
+    tipo, dados = issues.interpretar(corpo)
+    assert tipo == "produto" and dados == {"termo": "iphone 17", "preco_min": 3000.0, "desconto_min": 0}
+    assert "de R$ 3.000,00 até sem limite" in monitor.descrever(tipo, monitor.ItemProduto(**dados), HOJE)

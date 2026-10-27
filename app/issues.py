@@ -43,6 +43,7 @@ CAMPOS = {
     },
     "produto": {
         "produto": "termo",
+        "preço mínimo (r$)": "preco_min",
         "preço máximo (r$)": "preco_max",
         "desconto mínimo (%)": "desconto_min",
     },
@@ -100,7 +101,7 @@ def _converter(tipo: str, chave: str, valor: str):
         return [linha.strip() for linha in valor.splitlines() if linha.strip().startswith("http")]
     if chave in ("ida_em_dias", "duracao_dias", "adultos", "noites", "checkin_em_dias", "desconto_min", "ultimos_dias"):
         return int(_numero(valor))
-    if chave in ("preco_max", "diaria_max"):
+    if chave in ("preco_max", "diaria_max", "preco_min"):
         return _numero(valor)
     return valor.strip()
 
