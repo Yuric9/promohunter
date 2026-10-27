@@ -1,4 +1,5 @@
 """Passagens aéreas (Google Voos) e hospedagens (Google Hotéis) via SerpApi."""
+import re
 from datetime import date
 from typing import List, Optional
 
@@ -22,6 +23,20 @@ def _serpapi(params: dict) -> dict:
         raise RuntimeError(f"SerpApi: {dados['error']}")
     r.raise_for_status()
     return dados
+
+
+def _oferta(p: dict) -> str:
+    """Junta e traduz os selos de oferta do Google ('Great Deal', '22% less than usual')."""
+    partes = []
+    for valor in (p.get("deal_description"), p.get("deal")):
+        texto = (valor or "").strip()
+        if not texto:
+            continue
+        texto = SELOS.get(texto.lower(), texto)
+        texto = re.sub(r"(\d+)\s*% less than usual", r"\1% abaixo do normal", texto, flags=re.I)
+        if texto not in partes:
+            partes.append(texto)
+    return " · ".join(partes)
 
 
 def _numero(valor) -> Optional[float]:
@@ -102,6 +117,6 @@ def buscar_hospedagens(local: str, checkin: date, checkout: date, adultos: int =
             tipo=p.get("type", ""),
             link=p.get("link") or link_busca,
             imagem=(imagens[0].get("original_image") or imagens[0].get("thumbnail") or "") if imagens else "",
-            oferta=p.get("deal_description") or SELOS.get((p.get("deal") or "").strip().lower(), p.get("deal") or ""),
+            oferta=_oferta(p),
         ))
     return sorted(hospedagens, key=lambda h: h.diaria)

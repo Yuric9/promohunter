@@ -52,7 +52,7 @@ hospedagens:
 # Em "sites" coloque blogs de promoção confiáveis (deixe vazio para buscar em toda a internet;
 # vídeos e redes sociais são ignorados).
 anuncios:
-  - busca: promoção passagens
+  - busca: passagens
     sites:
       - melhoresdestinos.com.br
       - passagensimperdiveis.com.br

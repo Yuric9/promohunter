@@ -177,7 +177,7 @@ def test_leitura_google_hoteis(monkeypatch):
         "properties": [
             {"name": "Pousada do Sol", "rate_per_night": {"lowest": "R$ 310", "extracted_lowest": 310},
              "total_rate": {"extracted_lowest": 620}, "overall_rating": 4.7, "reviews": 812,
-             "images": [{"thumbnail": "https://img/sol"}], "deal_description": "20% abaixo do normal"},
+             "images": [{"thumbnail": "https://img/sol"}], "deal_description": "Deal", "deal": "20% less than usual"},
             {"name": "Sem preço"},
             {"name": "Pousada Simples", "rate_per_night": {"extracted_lowest": 180}, "overall_rating": 4.1,
              "deal": "Great Deal"},
@@ -186,7 +186,7 @@ def test_leitura_google_hoteis(monkeypatch):
     hs = viagens.buscar_hospedagens("pousadas em Pirenópolis", date(2026, 11, 21), date(2026, 11, 23))
     assert [h.nome for h in hs] == ["Pousada Simples", "Pousada do Sol"]
     sol = hs[1]
-    assert (sol.diaria, sol.total, sol.nota, sol.imagem, sol.oferta) == (310, 620, 4.7, "https://img/sol", "20% abaixo do normal")
+    assert (sol.diaria, sol.total, sol.nota, sol.imagem, sol.oferta) == (310, 620, 4.7, "https://img/sol", "Promoção · 20% abaixo do normal")
     assert hs[0].link == "https://www.google.com/travel/hotels?x"  # sem site próprio, usa o link da busca
     assert hs[0].oferta == "Ótima promoção"  # selo traduzido
 

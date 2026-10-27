@@ -1,9 +1,12 @@
 """Promoções anunciadas na internet: busca no Google limitada aos últimos dias (via SerpApi)."""
+import logging
 from typing import List, Optional
 from urllib.parse import urlparse
 
 from app.models import Anuncio
 from app.services.viagens import _serpapi
+
+log = logging.getLogger(__name__)
 
 PERIODOS = {1: "qdr:d", 7: "qdr:w", 30: "qdr:m"}
 # Vídeos e redes sociais raramente são o anúncio da promoção em si
@@ -33,6 +36,8 @@ def buscar_anuncios(busca: str, ultimos_dias: int = 7, sites: Optional[List[str]
     if sites:
         consulta += " (" + " OR ".join(f"site:{s}" for s in sites) + ")"
     dados = _serpapi({"engine": "google", "q": consulta, "tbs": PERIODOS[dias], "num": limite})
+    brutos = dados.get("organic_results") or []
+    log.info("[anúncios] busca %r: %d resultado(s) do Google antes dos filtros", consulta, len(brutos))
     return [
         Anuncio(
             titulo=r["title"],
@@ -41,5 +46,5 @@ def buscar_anuncios(busca: str, ultimos_dias: int = 7, sites: Optional[List[str]
             fonte=r.get("source") or _dominio(r["link"]),
             data=r.get("date", ""),
         )
-        for r in dados.get("organic_results") or [] if _util(r)
+        for r in brutos if _util(r)
     ]
