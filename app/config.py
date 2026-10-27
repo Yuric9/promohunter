@@ -20,6 +20,7 @@ class Settings(BaseSettings):
 
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
+    telegram_dono: str = ""  # número do seu usuário no Telegram (libera o robô de conversa)
 
     data_dir: Path = Path("data")
     reenvio_horas: int = 24

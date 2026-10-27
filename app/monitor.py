@@ -9,6 +9,7 @@ Com SIMULAR=true ele só mostra as mensagens, sem postar.
 """
 import logging
 import os
+import re
 import sys
 from datetime import date, timedelta
 from html import escape
@@ -147,8 +148,19 @@ class Post(BaseModel):
     imagem: str = ""
 
 
+ACESSORIOS = re.compile(r"\b(capa|capinha|case|pel[ií]cula|cabo|carregador|suporte|adesivo|skin|bainha|"
+                        r"protetor|pulseira|fone de ouvido|kit de limpeza)\b", re.I)
+
+
+def sem_acessorios(termo: str, produtos: list) -> list:
+    """Tira capinhas, películas etc., a não ser que a busca seja justamente por um acessório."""
+    if ACESSORIOS.search(termo):
+        return produtos
+    return [p for p in produtos if not ACESSORIOS.search(p.titulo)]
+
+
 def posts_produto(item: ItemProduto) -> List[Post]:
-    produtos = buscar_google_shopping(item.termo)
+    produtos = sem_acessorios(item.termo, buscar_google_shopping(item.termo))
     comp = comparar_termo(item.termo, produtos, item.desconto_min, item.preco_min, item.preco_max or float("inf"))
     if not comp:
         mais_barato = min(produtos, key=lambda p: p.preco, default=None)
@@ -179,6 +191,7 @@ def posts_voo(item: ItemVoo, hoje: date) -> List[Post]:
         log.info("[voo] %s: nenhum voo encontrado", rota)
         return []
     melhor = res.voos[0]
+    texto = formatar_voos(rota, ida, volta, item.adultos, res)
     preco_baixo = res.nivel_preco == "low"
     dentro_do_preco = item.preco_max is None or melhor.preco <= item.preco_max
     if item.so_preco_baixo and not preco_baixo and not (item.preco_max and melhor.preco <= item.preco_max):
@@ -188,11 +201,16 @@ def posts_voo(item: ItemVoo, hoje: date) -> List[Post]:
         log.info("[voo] %s: mais barato %s, acima do limite %s", rota, _brl(melhor.preco), _brl(item.preco_max))
         return []
 
+    chave = f"voo:{rota}:{ida}:{volta}:{melhor.preco:.0f}"
+    return [Post(chave=chave, texto=texto)]
+
+
+def formatar_voos(rota: str, ida: date, volta: Optional[date], adultos: int, res) -> str:
     selo = {"low": "🟢 Preço ABAIXO do normal", "typical": "🟡 Preço dentro do normal", "high": "🔴 Preço acima do normal"}
     linhas = [
         f"✈️ <b>PASSAGEM {escape(rota)}</b>",
         f"📅 Ida {_data(ida)}" + (f" · Volta {_data(volta)}" if volta else " · Só ida")
-        + (f" · {item.adultos} adultos" if item.adultos > 1 else ""),
+        + (f" · {adultos} adultos" if adultos > 1 else ""),
     ]
     if res.nivel_preco in selo:
         linhas.append(selo[res.nivel_preco])
@@ -205,8 +223,7 @@ def posts_voo(item: ItemVoo, hoje: date) -> List[Post]:
         linhas.append(f"{'🏆' if i == 0 else '•'} <b>{_brl(voo.preco)}</b> — {detalhe}")
     if res.link:
         linhas += ["", f'🔗 <a href="{escape(res.link, quote=True)}">Ver no Google Voos</a>']
-    chave = f"voo:{rota}:{ida}:{volta}:{melhor.preco:.0f}"
-    return [Post(chave=chave, texto="\n".join(linhas))]
+    return "\n".join(linhas)
 
 
 def posts_hospedagem(item: ItemHospedagem, hoje: date) -> List[Post]:
