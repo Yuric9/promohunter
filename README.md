@@ -1,8 +1,48 @@
 # PromoHunter API
 
-Caçador de promoções: busca um produto **em várias lojas da internet** (Google Shopping),
-na **Shopee** e no **Mercado Livre**, compara as ofertas, escolhe a melhor e posta num
-**canal do Telegram**. Também pode rodar sozinho de tempos em tempos.
+Caçador de promoções: pesquisa **produtos, passagens aéreas, hotéis, pousadas e promoções
+anunciadas** na internet, compara os preços, escolhe as melhores ofertas e posta num
+**canal do Telegram**. Roda sozinho no GitHub todo dia — ou no seu Windows, com painel.
+
+## Rodando no GitHub (sem computador) ⭐
+
+O robô de monitoramento roda **sozinho no GitHub Actions, todo dia**, de graça e sem precisar
+de computador ligado. Ele pesquisa tudo que está no arquivo **`monitoramento.yml`**:
+
+| Tipo | Onde pesquisa | O que compara |
+|---|---|---|
+| `produtos` | Google Shopping | Preço e desconto em várias lojas |
+| `voos` | Google Voos | Companhias aéreas + se o preço está abaixo do normal |
+| `hospedagens` | Google Hotéis | Hotéis e pousadas: diária, nota e promoções |
+| `anuncios` | Google (últimos dias) | Páginas que anunciam promoções recentes |
+
+As melhores ofertas são postadas no canal do Telegram, sem repetir a mesma oferta por 7 dias.
+
+### 1. Cadastrar as chaves (uma vez só)
+No repositório: **Settings → Secrets and variables → Actions → New repository secret**.
+Crie estes 3 secrets (nome exatamente igual, valor = a chave):
+
+| Name | Secret |
+|---|---|
+| `SERPAPI_KEY` | sua chave da SerpApi |
+| `TELEGRAM_BOT_TOKEN` | token do robô (BotFather) |
+| `TELEGRAM_CHAT_ID` | `@link_do_canal` |
+
+> Os secrets ficam criptografados: nem quem visita o repositório consegue ver.
+
+### 2. Escolher o que monitorar
+Abra o arquivo **`monitoramento.yml`**, clique no lápis ✏️, edite e clique em **Commit changes**.
+O arquivo tem exemplos comentados de cada tipo.
+
+> Cada item gasta 1 busca por dia. O plano grátis da SerpApi tem 250 buscas/mês → até **8 itens**.
+
+### 3. Testar agora (sem esperar o horário)
+Aba **Actions → Monitorar promoções → Run workflow**. Marque **"Só simular"** para ver as
+mensagens no log sem postar, ou deixe desmarcado para postar de verdade.
+O horário automático é todo dia às 08:17 (Brasília).
+
+> O GitHub pausa agendamentos de repositórios sem nenhuma atividade por 60 dias. Se isso
+> acontecer, ele avisa por e-mail e basta clicar em "Enable workflow" na aba Actions.
 
 ## Como usar no Windows (sem instalar nada)
 

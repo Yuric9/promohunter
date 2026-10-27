@@ -1,0 +1,55 @@
+# =====================================================================
+#  O QUE O PROMOHUNTER MONITORA
+#  Edite este arquivo direto no GitHub (ícone de lápis ✏️) e clique em
+#  "Commit changes" para salvar. O robô roda sozinho 1x por dia.
+#
+#  ⚠️ Cada item abaixo gasta 1 busca da SerpApi por dia.
+#     Plano grátis = 250 buscas/mês → no máximo 8 itens no total.
+#
+#  Dicas de formatação:
+#   - Mantenha os espaços do começo das linhas (2 espaços por nível).
+#   - Para desativar um item, coloque # no começo das linhas dele.
+#   - Datas no formato AAAA-MM-DD, ex.: 2026-12-20
+# =====================================================================
+
+# ---- PRODUTOS (Google Shopping: compara várias lojas) ----------------
+produtos:
+  - termo: air fryer
+    preco_max: 600        # só posta se achar até esse preço
+    desconto_min: 15      # e com pelo menos 15% de desconto
+
+# ---- PASSAGENS AÉREAS (Google Voos: compara as companhias) -----------
+# Use o código de 3 letras do aeroporto:
+#   GYN Goiânia · BSB Brasília · GRU/CGH São Paulo · GIG/SDU Rio
+#   REC Recife · SSA Salvador · FOR Fortaleza · NAT Natal · MCZ Maceió
+#   FLN Florianópolis · POA Porto Alegre · LIS Lisboa · MIA Miami
+voos:
+  - origem: GYN
+    destino: REC
+    ida_em_dias: 45       # procura voos saindo daqui a 45 dias
+    duracao_dias: 7       # volta 7 dias depois (0 = só ida)
+    adultos: 1
+    preco_max: 1500       # posta se achar até esse valor...
+    so_preco_baixo: true  # ...ou quando o Google disser que está ABAIXO do normal
+
+  # Exemplo com data fixa:
+  # - origem: BSB
+  #   destino: SSA
+  #   ida: 2026-12-26
+  #   duracao_dias: 5
+  #   preco_max: 1200
+
+# ---- HOTÉIS E POUSADAS (Google Hotéis: compara os sites de reserva) --
+hospedagens:
+  - local: pousadas em Pirenópolis
+    checkin_em_dias: 20   # entrada daqui a 20 dias
+    noites: 2
+    adultos: 2
+    diaria_max: 400       # só mostra até esse valor por noite
+    nota_min: 4.0         # e com nota 4.0 ou mais
+
+# ---- PROMOÇÕES ANUNCIADAS (Google: páginas dos últimos 7 dias) -------
+anuncios:
+  - busca: promoção passagens aéreas
+    ultimos_dias: 7
+    maximo_por_vez: 3

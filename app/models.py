@@ -34,3 +34,45 @@ class Comparativo(BaseModel):
 class ResultadoBusca(BaseModel):
     produtos: List[Produto]
     avisos: List[str] = []
+
+
+class TrechoVoo(BaseModel):
+    companhia: str = ""
+    saida: str = ""
+    chegada: str = ""
+    horario_saida: str = ""
+
+
+class Voo(BaseModel):
+    preco: float
+    companhia: str
+    escalas: int = 0
+    duracao_min: int = 0
+    trechos: List[TrechoVoo] = []
+
+
+class ResultadoVoos(BaseModel):
+    voos: List[Voo]
+    nivel_preco: str = ""  # "low", "typical" ou "high", segundo o Google
+    faixa_tipica: Optional[List[float]] = None
+    link: str = ""
+
+
+class Hospedagem(BaseModel):
+    nome: str
+    diaria: float
+    total: Optional[float] = None
+    nota: float = 0
+    avaliacoes: int = 0
+    tipo: str = ""
+    link: str = ""
+    imagem: str = ""
+    oferta: str = ""  # ex.: "22% abaixo do normal", quando o Google informa
+
+
+class Anuncio(BaseModel):
+    titulo: str
+    link: str
+    resumo: str = ""
+    fonte: str = ""
+    data: str = ""

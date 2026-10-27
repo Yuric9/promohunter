@@ -1,0 +1,57 @@
+name: Monitorar promoções
+
+on:
+  schedule:
+    - cron: "17 11 * * *"  # todo dia às 08:17 (horário de Brasília)
+  workflow_dispatch:
+    inputs:
+      simular:
+        description: "Só simular (mostra as mensagens no log, sem postar no Telegram)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: monitorar
+  cancel-in-progress: false
+
+jobs:
+  monitorar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      # Lista das ofertas já postadas, para não repetir no canal
+      - name: Recuperar ofertas já postadas
+        uses: actions/cache/restore@v4
+        with:
+          path: data
+          key: enviados-${{ github.run_id }}
+          restore-keys: enviados-
+
+      - name: Pesquisar e postar
+        run: |
+          mkdir -p data
+          python -m app.monitor
+        env:
+          SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SIMULAR: ${{ inputs.simular }}
+          REENVIO_HORAS: "168"  # a mesma oferta só volta a ser postada depois de 7 dias
+
+      - name: Guardar ofertas já postadas
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data
+          key: enviados-${{ github.run_id }}
