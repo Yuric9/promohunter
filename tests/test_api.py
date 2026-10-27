@@ -6,7 +6,7 @@ from app.config import settings
 from app.models import Produto
 from app.services import busca
 from app.services.comparador import comparar_termo, rankear_melhores
-from app.services.whatsapp import formatar_mensagem
+from app.services.telegram import formatar_mensagem
 
 
 def produto(titulo, preco, original=None, desconto=0, plataforma="Shopee", vendidos=0):
@@ -25,9 +25,9 @@ PRODUTOS = [
 def isolar(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "data_dir", tmp_path)
     monkeypatch.setattr(settings, "api_key", "segredo")
-    monkeypatch.setattr(busca, "FONTES", {"Fake": lambda termo, limite: list(PRODUTOS)})
+    monkeypatch.setattr(busca, "fontes_ativas", lambda: {"Fake": lambda termo, limite: list(PRODUTOS)})
     enviados = []
-    monkeypatch.setattr(main, "enviar_whatsapp", lambda msg, n=None, g=None: enviados.append(msg) or {"ok": True})
+    monkeypatch.setattr(main, "enviar_telegram", lambda msg, imagem="": enviados.append(msg) or {"ok": True})
     return enviados
 
 
@@ -61,7 +61,7 @@ def test_mensagem_sem_preco_original_nao_mostra_de_por():
 def test_falha_de_uma_fonte_vira_aviso(monkeypatch):
     def quebra(termo, limite):
         raise RuntimeError("bloqueado")
-    monkeypatch.setattr(busca, "FONTES", {"Fake": lambda t, l: list(PRODUTOS), "Quebrada": quebra})
+    monkeypatch.setattr(busca, "fontes_ativas", lambda: {"Fake": lambda t, l: list(PRODUTOS), "Quebrada": quebra})
     r = client.get("/api/promocoes/buscar", params={"q": "ps5"}, headers=AUTH).json()
     assert r["total"] == 3
     assert r["avisos"] == ["Quebrada: bloqueado"]
@@ -92,7 +92,7 @@ def test_erro_de_conexao_vira_mensagem_amigavel(monkeypatch):
 
     def sem_internet(termo, limite):
         raise requests.ConnectionError("HTTPSConnectionPool(...)")
-    monkeypatch.setattr(busca, "FONTES", {"Shopee": sem_internet})
+    monkeypatch.setattr(busca, "fontes_ativas", lambda: {"Shopee": sem_internet})
     r = client.get("/api/promocoes/buscar", params={"q": "ps5"}, headers=AUTH).json()
     assert r["avisos"] == ["Shopee: não foi possível conectar. Verifique sua internet."]
 
@@ -168,3 +168,91 @@ def test_integracoes_nao_revela_chaves(monkeypatch):
     r = client.get("/api/integracoes", headers=AUTH)
     assert r.json()["shopee_afiliados"] is True
     assert "segredo-shopee" not in r.text
+
+
+class RespostaFalsa:
+    def __init__(self, dados, status=200):
+        self.dados, self.status_code, self.content = dados, status, b"x"
+
+    def raise_for_status(self):
+        pass
+
+    def json(self):
+        return self.dados
+
+
+def test_google_shopping_converte_resultados(monkeypatch):
+    from app.services import google_shopping
+
+    monkeypatch.setattr(settings, "serpapi_key", "k")
+    capturado = {}
+
+    def falso_get(url, params, timeout):
+        capturado.update(params)
+        return RespostaFalsa({"shopping_results": [
+            {"title": "Air Fryer Mondial", "extracted_price": 299.9, "extracted_old_price": 399.9,
+             "source": "Magazine Luiza", "product_link": "https://google/p/1", "thumbnail": "https://img/1",
+             "rating": 4.7, "reviews": 1200},
+            {"title": "Air Fryer Philco", "price": "R$ 1.299,90", "tag": "20% OFF", "source": "Amazon",
+             "link": "https://amazon/x"},
+            {"title": "Sem preço", "source": "Loja"},
+        ]})
+
+    monkeypatch.setattr(google_shopping.requests, "get", falso_get)
+    produtos = google_shopping.buscar_google_shopping("air fryer")
+
+    assert (capturado["engine"], capturado["gl"], capturado["q"]) == ("google_shopping", "br", "air fryer")
+    a, b = produtos  # o item sem preço é ignorado
+    assert (a.preco, a.preco_original, a.desconto, a.loja, a.link) == (299.9, 399.9, 25, "Magazine Luiza", "https://google/p/1")
+    assert (b.preco, b.desconto, b.preco_original, b.link) == (1299.9, 20, 1624.88, "https://amazon/x")
+
+
+def test_google_shopping_erro_da_serpapi(monkeypatch):
+    import pytest as _pytest
+
+    from app.services import google_shopping
+
+    monkeypatch.setattr(google_shopping.requests, "get",
+                        lambda *a, **k: RespostaFalsa({"error": "Invalid API key."}, 401))
+    with _pytest.raises(RuntimeError, match="Invalid API key"):
+        google_shopping.buscar_google_shopping("ps5")
+
+
+def test_sem_nenhuma_chave_avisa_como_configurar(monkeypatch):
+    from app.services import busca as _busca
+
+    monkeypatch.undo()
+    for campo in ("serpapi_key", "shopee_app_id", "shopee_secret", "ml_access_token"):
+        monkeypatch.setattr(settings, campo, "")
+    r = _busca.buscar_todas("ps5")
+    assert r.produtos == [] and "SERPAPI_KEY" in r.avisos[0]
+
+
+def test_telegram_envia_foto_e_cai_para_texto(monkeypatch):
+    from app.services import telegram
+
+    monkeypatch.setattr(settings, "telegram_bot_token", "123:ABC")
+    monkeypatch.setattr(settings, "telegram_chat_id", "@meucanal")
+    chamadas = []
+
+    def falso_post(url, json, timeout):
+        metodo = url.rsplit("/", 1)[1]
+        chamadas.append((metodo, json))
+        if metodo == "sendPhoto":
+            return RespostaFalsa({"ok": False, "description": "wrong file identifier"})
+        return RespostaFalsa({"ok": True})
+
+    monkeypatch.setattr(telegram.requests, "post", falso_post)
+    comp = comparar_termo("ps5 <slim>", [PRODUTOS[0]], desconto_min=0)
+    texto = formatar_mensagem(comp)
+    assert telegram.enviar_telegram(texto, "https://img/x.jpg") == {"ok": True}
+    assert [c[0] for c in chamadas] == ["sendPhoto", "sendMessage"]
+    assert chamadas[1][1]["chat_id"] == "@meucanal" and chamadas[1][1]["parse_mode"] == "HTML"
+    assert "PS5 &lt;SLIM&gt;" in texto and "<s>R$ 4.000,00</s>" in texto
+
+
+def test_telegram_sem_configuracao(monkeypatch):
+    from app.services import telegram
+
+    monkeypatch.setattr(settings, "telegram_bot_token", "")
+    assert telegram.enviar_telegram("oi")["ok"] is False

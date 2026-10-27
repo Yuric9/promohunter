@@ -15,12 +15,10 @@ class Settings(BaseSettings):
     shopee_app_id: str = ""
     shopee_secret: str = ""
 
-    whatsapp_provider: str = "evolution"
-    evolution_api_url: str = "http://localhost:8080"
-    evolution_api_key: str = ""
-    evolution_instance: str = "promohunter"
-    whatsapp_default_number: str = ""
-    whatsapp_default_group_id: str = ""
+    serpapi_key: str = ""
+
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""
 
     data_dir: Path = Path("data")
     reenvio_horas: int = 24

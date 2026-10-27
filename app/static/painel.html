@@ -56,7 +56,11 @@
 <main>
   <section>
     <h2>Integrações</h2>
-    <div id="integracoes" class="integracoes"></div>
+    <div class="linha" style="justify-content:space-between">
+      <div id="integracoes" class="integracoes"></div>
+      <button type="button" class="secundario" id="btn-teste-telegram">Testar Telegram</button>
+    </div>
+    <div id="msg-integracoes" class="msg"></div>
     <p class="dica">Para ativar: na janelinha do PromoHunter clique em <strong>Configurações</strong>,
       preencha as chaves, salve e clique em <strong>Desligar</strong> e abra o programa de novo.</p>
   </section>
@@ -67,7 +71,7 @@
       <div class="cresce"><label for="q">Produto</label><input id="q" placeholder="ex.: air fryer" required></div>
       <div style="width:130px"><label for="dmin">Desconto mín. (%)</label><input id="dmin" type="number" min="0" max="100" value="0"></div>
       <button type="submit">Buscar</button>
-      <button type="button" class="secundario" id="btn-enviar">Enviar melhor no WhatsApp</button>
+      <button type="button" class="secundario" id="btn-enviar">Postar melhor no Telegram</button>
     </form>
     <div id="msg-busca" class="msg"></div>
     <div id="avisos-busca"></div>
@@ -94,9 +98,8 @@
         <div><label for="preco_max">Preço máximo (R$)</label><input id="preco_max" type="number" min="1" step="0.01"></div>
         <div><label for="desconto_min">Desconto mínimo (%)</label><input id="desconto_min" type="number" min="0" max="100"></div>
         <div><label for="intervalo_minutos">Intervalo (min)</label><input id="intervalo_minutos" type="number" min="5"></div>
-        <div><label for="whatsapp_numero">Número WhatsApp</label><input id="whatsapp_numero" placeholder="5562999999999"></div>
-        <div><label for="whatsapp_grupo_id">ID do grupo (opcional)</label><input id="whatsapp_grupo_id"></div>
       </div>
+      <p class="dica" id="dica-consumo" style="margin-bottom:12px"></p>
       <button type="submit">Salvar</button>
     </form>
     <div id="msg-config" class="msg"></div>
@@ -138,7 +141,7 @@
     const link = /^https?:\/\//.test(p.link) ? p.link : "#";
     return `<div class="oferta">
       ${p.imagem ? `<img src="${esc(p.imagem)}" alt="" loading="lazy">` : ""}
-      <div><span class="selo">${esc(p.plataforma)}</span> ${p.desconto ? `<span class="selo desconto">${p.desconto}% OFF</span>` : ""}</div>
+      <div><span class="selo">${esc(p.loja || p.plataforma)}</span> ${p.desconto ? `<span class="selo desconto">${p.desconto}% OFF</span>` : ""}</div>
       <div class="titulo">${esc(p.titulo)}</div>
       ${p.preco_original ? `<div class="riscado">${brl(p.preco_original)}</div>` : ""}
       <div class="preco">${brl(p.preco)}</div>
@@ -163,25 +166,40 @@
   $("btn-enviar").addEventListener("click", async () => {
     if (!$("q").value) { mensagem("msg-busca", "Digite um produto primeiro", "erro"); return; }
     const botao = $("btn-enviar"); botao.disabled = true;
-    mensagem("msg-busca", "Buscando e enviando...");
+    mensagem("msg-busca", "Buscando e postando...");
     try {
       const params = new URLSearchParams({ q: $("q").value, desconto_min: $("dmin").value || 0 });
-      const r = await api(`/api/whatsapp/enviar?${params}`, { method: "POST" });
+      const r = await api(`/api/telegram/postar?${params}`, { method: "POST" });
       mostrarAvisos(r.avisos);
-      if (r.erro) mensagem("msg-busca", "Nenhuma oferta para enviar", "erro");
-      else if (r.whatsapp.ok) mensagem("msg-busca", "✅ Enviado para o WhatsApp!", "ok");
-      else mensagem("msg-busca", "Falha no WhatsApp: " + r.whatsapp.erro, "erro");
+      if (r.erro) mensagem("msg-busca", "Nenhuma oferta para postar", "erro");
+      else if (r.telegram.ok) mensagem("msg-busca", "✅ Postado no Telegram!", "ok");
+      else mensagem("msg-busca", "Falha no Telegram: " + r.telegram.erro, "erro");
     } catch (err) { mensagem("msg-busca", err.message, "erro"); }
     botao.disabled = false;
   });
 
-  const CAMPOS = ["preco_min", "preco_max", "desconto_min", "intervalo_minutos", "whatsapp_numero", "whatsapp_grupo_id"];
+  const CAMPOS = ["preco_min", "preco_max", "desconto_min", "intervalo_minutos"];
+
+  // O plano grátis da SerpApi (Google Shopping) dá 250 buscas por mês.
+  function atualizarConsumo() {
+    const termos = $("termos").value.split("\n").filter((t) => t.trim()).length;
+    const intervalo = Number($("intervalo_minutos").value) || 720;
+    const porMes = Math.round(termos * (60 / intervalo) * 24 * 30);
+    $("dica-consumo").textContent = termos
+      ? `Com a automação ligada: ~${porMes} buscas por mês no Google Shopping (o plano grátis da SerpApi dá 250).`
+        + (porMes > 250 ? " ⚠️ Aumente o intervalo ou monitore menos produtos." : "")
+      : "";
+    $("dica-consumo").style.color = porMes > 250 ? "var(--erro)" : "";
+  }
+  $("termos").addEventListener("input", atualizarConsumo);
+  $("intervalo_minutos").addEventListener("input", atualizarConsumo);
 
   async function carregarConfig() {
     try {
       const c = await api("/api/configuracoes");
       $("termos").value = c.termos.join("\n");
       CAMPOS.forEach((k) => { $(k).value = c[k] ?? ""; });
+      atualizarConsumo();
     } catch (err) { mensagem("msg-config", err.message, "erro"); }
   }
 
@@ -192,9 +210,7 @@
       preco_min: Number($("preco_min").value || 0),
       preco_max: Number($("preco_max").value || 10000),
       desconto_min: Number($("desconto_min").value || 0),
-      intervalo_minutos: Number($("intervalo_minutos").value || 30),
-      whatsapp_numero: $("whatsapp_numero").value || null,
-      whatsapp_grupo_id: $("whatsapp_grupo_id").value || null,
+      intervalo_minutos: Number($("intervalo_minutos").value || 720),
     };
     try {
       await api("/api/configuracoes", { method: "POST", body: JSON.stringify(corpo) });
@@ -224,13 +240,20 @@
   });
 
   async function carregarIntegracoes() {
-    const nomes = { shopee_afiliados: "Shopee Afiliados", mercado_livre: "Mercado Livre", whatsapp: "WhatsApp (Evolution)" };
+    const nomes = { google_shopping: "Google Shopping", shopee_afiliados: "Shopee Afiliados", mercado_livre: "Mercado Livre", telegram: "Telegram" };
     try {
       const st = await api("/api/integracoes");
       $("integracoes").innerHTML = Object.entries(nomes).map(([k, nome]) =>
         `<span class="integracao ${st[k] ? "on" : ""}">${st[k] ? "✅" : "⚪"} ${nome}</span>`).join("");
     } catch (err) { $("integracoes").textContent = err.message; }
   }
+
+  $("btn-teste-telegram").addEventListener("click", async () => {
+    try {
+      const r = await api("/api/telegram/teste", { method: "POST" });
+      mensagem("msg-integracoes", r.ok ? "✅ Mensagem de teste postada no canal!" : "Falha no Telegram: " + r.erro, r.ok ? "ok" : "erro");
+    } catch (err) { mensagem("msg-integracoes", err.message, "erro"); }
+  });
 
   carregarIntegracoes();
   carregarConfig();

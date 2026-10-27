@@ -1,7 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Optional
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -14,7 +13,7 @@ from app.config import settings
 from app.models import SearchConfig
 from app.services.busca import buscar_todas
 from app.services.comparador import comparar_termo, rankear_melhores
-from app.services.whatsapp import enviar_whatsapp, formatar_mensagem
+from app.services.telegram import enviar_telegram, formatar_mensagem
 from app.storage import ja_enviado, load_config, marcar_enviado, save_config
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -52,9 +51,10 @@ def saude():
 def integracoes():
     """Mostra no painel quais chaves foram preenchidas no .env (sem revelar os valores)."""
     return {
+        "google_shopping": bool(settings.serpapi_key),
         "shopee_afiliados": bool(settings.shopee_app_id and settings.shopee_secret),
         "mercado_livre": bool(settings.ml_access_token),
-        "whatsapp": bool(settings.evolution_api_key and settings.evolution_api_key != "sua-key"),
+        "telegram": bool(settings.telegram_bot_token and settings.telegram_chat_id),
     }
 
 
@@ -84,17 +84,22 @@ def comparar(q: str, limite: int = Query(10, ge=1, le=50), desconto_min: int = Q
     return {"comparativo": comparar_termo(q, res.produtos, desconto_min), "avisos": res.avisos}
 
 
-@app.post("/api/whatsapp/enviar", dependencies=[Depends(exigir_api_key)])
-def enviar(q: str, numero: Optional[str] = None, grupo_id: Optional[str] = None, desconto_min: int = 0):
+@app.post("/api/telegram/postar", dependencies=[Depends(exigir_api_key)])
+def postar(q: str, desconto_min: int = 0):
     res = buscar_todas(q, 10)
     comp = comparar_termo(q, res.produtos, desconto_min)
     if not comp:
         return {"erro": "sem ofertas", "avisos": res.avisos}
     msg = formatar_mensagem(comp)
-    envio = enviar_whatsapp(msg, numero, grupo_id)
+    envio = enviar_telegram(msg, comp.melhor_oferta.imagem)
     if envio["ok"]:
         marcar_enviado(comp.melhor_oferta.link)
-    return {"comparativo": comp, "whatsapp": envio, "msg": msg, "avisos": res.avisos}
+    return {"comparativo": comp, "telegram": envio, "msg": msg, "avisos": res.avisos}
+
+
+@app.post("/api/telegram/teste", dependencies=[Depends(exigir_api_key)])
+def telegram_teste():
+    return enviar_telegram("✅ <b>PromoHunter</b> conectado! As promoções vão aparecer aqui.")
 
 
 def job():
@@ -108,11 +113,11 @@ def job():
         if ja_enviado(comp.melhor_oferta.link):
             log.info("[%s] melhor oferta já enviada recentemente, pulando", termo)
             continue
-        envio = enviar_whatsapp(formatar_mensagem(comp), cfg.whatsapp_numero, cfg.whatsapp_grupo_id)
+        envio = enviar_telegram(formatar_mensagem(comp), comp.melhor_oferta.imagem)
         if envio["ok"]:
             marcar_enviado(comp.melhor_oferta.link)
         else:
-            log.error("[%s] falha ao enviar WhatsApp: %s", termo, envio["erro"])
+            log.error("[%s] falha ao postar no Telegram: %s", termo, envio["erro"])
 
 
 @app.post("/api/automacao/iniciar", dependencies=[Depends(exigir_api_key)])
