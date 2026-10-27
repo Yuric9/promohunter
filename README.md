@@ -14,7 +14,7 @@ de computador ligado. Ele pesquisa tudo que está no arquivo **`monitoramento.ym
 | `produtos` | Google Shopping | Preço e desconto em várias lojas |
 | `voos` | Google Voos | Companhias aéreas + se o preço está abaixo do normal |
 | `hospedagens` | Google Hotéis | Hotéis e pousadas: diária, nota e promoções |
-| `anuncios` | Google (últimos dias) | Páginas que anunciam promoções recentes |
+| `anuncios` | Blogs de promoção (feed RSS, grátis) | Posts novos de promoções, filtrados por palavras |
 
 As melhores ofertas são postadas no canal do Telegram, sem repetir a mesma oferta por 7 dias.
 
@@ -35,6 +35,7 @@ Abra o arquivo **`monitoramento.yml`**, clique no lápis ✏️, edite e clique 
 O arquivo tem exemplos comentados de cada tipo.
 
 > Cada item gasta 1 busca por dia. O plano grátis da SerpApi tem 250 buscas/mês → até **8 itens**.
+> Os `anuncios` por feed RSS são grátis e não entram nessa conta.
 
 ### 3. Testar agora (sem esperar o horário)
 Aba **Actions → Monitorar promoções → Run workflow**. Marque **"Só simular"** para ver as

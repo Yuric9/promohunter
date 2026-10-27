@@ -4,7 +4,8 @@
 #  "Commit changes" para salvar. O robô roda sozinho 1x por dia.
 #
 #  ⚠️ Cada item abaixo gasta 1 busca da SerpApi por dia.
-#     Plano grátis = 250 buscas/mês → no máximo 8 itens no total.
+#     Plano grátis = 250 buscas/mês → no máximo 8 itens no total
+#     (os feeds de "anuncios" são grátis e não entram nessa conta).
 #
 #  Dicas de formatação:
 #   - Mantenha os espaços do começo das linhas (2 espaços por nível).
@@ -48,14 +49,22 @@ hospedagens:
     diaria_max: 400       # só mostra até esse valor por noite
     nota_min: 4.0         # e com nota 4.0 ou mais
 
-# ---- PROMOÇÕES ANUNCIADAS (Google: páginas dos últimos 7 dias) -------
-# Em "sites" coloque blogs de promoção confiáveis (deixe vazio para buscar em toda a internet;
-# vídeos e redes sociais são ignorados).
+# ---- PROMOÇÕES ANUNCIADAS (blogs de promoção) ------------------------
+# Lê os posts novos dos blogs pelo feed RSS: NÃO gasta busca da SerpApi.
+# "palavras" é opcional: só posta o que mencionar alguma delas.
+# (Também dá para usar "busca: texto" para procurar no Google — gasta 1 busca.)
 anuncios:
-  - busca: passagens
-    sites:
-      - melhoresdestinos.com.br
-      - passagensimperdiveis.com.br
-      - promocoesaereas.com.br
-    ultimos_dias: 7
+  - nome: Passagens em promoção
+    feeds:
+      - https://www.melhoresdestinos.com.br/feed
+      - https://passagensimperdiveis.com.br/feed
+    palavras: [passagem, passagens, voo, voos, aérea, aéreas]
+    ultimos_dias: 2       # só posts dos últimos 2 dias
     maximo_por_vez: 3
+
+  - nome: Hotéis e pacotes em promoção
+    feeds:
+      - https://www.melhoresdestinos.com.br/feed
+    palavras: [hotel, hotéis, pousada, resort, pacote, hospedagem]
+    ultimos_dias: 2
+    maximo_por_vez: 2

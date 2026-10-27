@@ -218,3 +218,74 @@ def test_leitura_anuncios(monkeypatch):
     assert capturado["q"] == "promoção passagens (site:melhoresdestinos.com.br OR site:passagensimperdiveis.com.br)"
     assert [a.titulo for a in lista] == ["Passagens por R$ 199", "Azul em promoção"]
     assert lista[1].fonte == "passagensimperdiveis.com.br"
+
+
+RSS = """<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel><title>Melhores Destinos</title>
+<item><title>LATAM: passagens para Recife a partir de R$ 389</title><link>https://md/1</link>
+<description>&lt;p&gt;Ida e volta saindo de &lt;b&gt;Goiânia&lt;/b&gt;.&lt;/p&gt;</description>
+<pubDate>Tue, 27 Oct 2026 10:00:00 -0300</pubDate></item>
+<item><title>Resort all inclusive com 40% off</title><link>https://md/2</link>
+<description>Pacote em Porto de Galinhas</description><pubDate>Tue, 27 Oct 2026 09:00:00 -0300</pubDate></item>
+<item><title>Passagens antigas</title><link>https://md/velho</link><pubDate>Mon, 01 Sep 2026 10:00:00 -0300</pubDate></item>
+</channel></rss>"""
+
+ATOM_FEED = """<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Blog Atom</title>
+<entry><title>Voos baratos para Lisboa</title><link href="https://atom/1"/>
+<summary>Promoção relâmpago</summary><updated>2026-10-27T12:00:00Z</updated></entry>
+</feed>"""
+
+
+class RespostaFeed:
+    def __init__(self, conteudo):
+        self.content = conteudo.encode("utf-8")
+
+    def raise_for_status(self):
+        pass
+
+
+def test_feeds_rss_e_atom_filtrando_data_e_palavras(monkeypatch):
+    from datetime import datetime, timezone
+
+    from app.services import feeds
+
+    paginas = {"https://md/feed": RSS, "https://atom/feed": ATOM_FEED}
+    monkeypatch.setattr(feeds.requests, "get", lambda url, headers, timeout: RespostaFeed(paginas[url]))
+
+    class Agora(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime(2026, 10, 27, 18, 0, tzinfo=timezone.utc)
+
+    monkeypatch.setattr(feeds, "datetime", Agora)
+    todos = feeds.buscar_nos_feeds(["https://md/feed", "https://atom/feed"], ultimos_dias=2)
+    assert [a.link for a in todos] == ["https://md/1", "https://md/2", "https://atom/1"]  # o antigo ficou de fora
+    assert todos[0].fonte == "Melhores Destinos" and todos[0].resumo == "Ida e volta saindo de Goiânia."
+    assert todos[0].data == "27/10 10:00"
+
+    so_voos = feeds.buscar_nos_feeds(["https://md/feed", "https://atom/feed"], palavras=["passagens", "voos"])
+    assert [a.link for a in so_voos] == ["https://md/1", "https://atom/1"]
+
+
+def test_feed_com_erro_nao_derruba_os_outros(monkeypatch):
+    from app.services import feeds
+
+    def get(url, headers, timeout):
+        if "quebrado" in url:
+            raise feeds.requests.ConnectionError("fora do ar")
+        return RespostaFeed(ATOM_FEED)
+
+    monkeypatch.setattr(feeds.requests, "get", get)
+    assert len(feeds.buscar_nos_feeds(["https://quebrado/feed", "https://atom/feed"], ultimos_dias=36500)) == 1
+
+
+def test_anuncios_por_feed_nao_gastam_busca(monkeypatch, isolar):
+    monkeypatch.setattr(monitor, "buscar_nos_feeds", lambda feeds, palavras, dias: [
+        Anuncio(titulo="Passagens para Recife por R$ 389", link="https://md/1", fonte="Melhores Destinos", data="27/10 10:00")])
+    cfg = monitor.Monitoramento(anuncios=[{"nome": "Passagens em promoção", "feeds": ["https://md/feed"]}])
+    assert cfg.total_buscas() == 0
+    monitor.executar(cfg, hoje=HOJE)
+    assert "Passagens em promoção" in isolar[0] and "Recife por R$ 389" in isolar[0]
+    with pytest.raises(ValueError):
+        monitor.ItemAnuncio(nome="sem fonte")

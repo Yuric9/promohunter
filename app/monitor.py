@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field, ValidationError, model_validator
 
 from app.config import settings
 from app.services.anuncios import buscar_anuncios
+from app.services.feeds import buscar_nos_feeds
 from app.services.comparador import comparar_termo
 from app.services.google_shopping import buscar_google_shopping
 from app.services.telegram import enviar_telegram, formatar_mensagem
@@ -84,10 +85,23 @@ class ItemHospedagem(BaseModel):
 
 
 class ItemAnuncio(BaseModel):
-    busca: str
+    nome: str = ""
+    feeds: List[str] = []  # feeds RSS de blogs de promoção (grátis, não gasta busca)
+    palavras: List[str] = []  # só posts que mencionam alguma dessas palavras
+    busca: str = ""  # ou: busca no Google (gasta 1 busca)
     sites: List[str] = []
-    ultimos_dias: int = 7
+    ultimos_dias: int = 2
     maximo_por_vez: int = Field(3, ge=1, le=10)
+
+    @model_validator(mode="after")
+    def precisa_de_fonte(self):
+        if not self.feeds and not self.busca:
+            raise ValueError("informe 'feeds' ou 'busca'")
+        return self
+
+    @property
+    def titulo(self) -> str:
+        return self.nome or self.busca or "Promoções"
 
 
 class Monitoramento(BaseModel):
@@ -97,7 +111,8 @@ class Monitoramento(BaseModel):
     anuncios: List[ItemAnuncio] = []
 
     def total_buscas(self) -> int:
-        return len(self.produtos) + len(self.voos) + len(self.hospedagens) + len(self.anuncios)
+        """Buscas da SerpApi por execução (feeds RSS não contam)."""
+        return len(self.produtos) + len(self.voos) + len(self.hospedagens) + sum(1 for a in self.anuncios if a.busca)
 
 
 def carregar(arquivo: Path = ARQUIVO_PADRAO) -> Monitoramento:
@@ -209,14 +224,16 @@ def posts_hospedagem(item: ItemHospedagem, hoje: date) -> List[Post]:
 
 
 def posts_anuncio(item: ItemAnuncio) -> List[Post]:
-    encontrados = buscar_anuncios(item.busca, item.ultimos_dias, item.sites or None)
+    encontrados = buscar_nos_feeds(item.feeds, item.palavras, item.ultimos_dias) if item.feeds else []
+    if item.busca:
+        encontrados += buscar_anuncios(item.busca, item.ultimos_dias, item.sites or None)
     novos = [a for a in encontrados if not ja_enviado(a.link)][:item.maximo_por_vez]
     if not novos:
-        log.info("[anúncios] %s: nenhum anúncio novo (%d encontrados)", item.busca, len(encontrados))
+        log.info("[anúncios] %s: nenhum anúncio novo (%d encontrados)", item.titulo, len(encontrados))
     posts = []
     for a in novos:
         texto = (
-            f"📢 <b>PROMOÇÃO ANUNCIADA</b> · {escape(item.busca)}\n\n"
+            f"📢 <b>PROMOÇÃO ANUNCIADA</b> · {escape(item.titulo)}\n\n"
             f"<b>{escape(a.titulo)}</b>\n"
             + (f"{escape(a.resumo)}\n" if a.resumo else "")
             + (f"🗓 {escape(a.data)} · " if a.data else "")
@@ -236,7 +253,7 @@ def executar(cfg: Monitoramento, simular: bool = False, hoje: Optional[date] = N
         [(f"produto '{i.termo}'", lambda i=i: posts_produto(i)) for i in cfg.produtos]
         + [(f"voo {i.origem}→{i.destino}", lambda i=i: posts_voo(i, hoje)) for i in cfg.voos]
         + [(f"hospedagem '{i.local}'", lambda i=i: posts_hospedagem(i, hoje)) for i in cfg.hospedagens]
-        + [(f"anúncios '{i.busca}'", lambda i=i: posts_anuncio(i)) for i in cfg.anuncios]
+        + [(f"anúncios '{i.titulo}'", lambda i=i: posts_anuncio(i)) for i in cfg.anuncios]
     )
     for nome, tarefa in tarefas:
         try:
