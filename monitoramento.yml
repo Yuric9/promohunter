@@ -15,8 +15,8 @@
 # ---- PRODUTOS (Google Shopping: compara várias lojas) ----------------
 produtos:
   - termo: air fryer
-    preco_max: 600        # só posta se achar até esse preço
-    desconto_min: 15      # e com pelo menos 15% de desconto
+    preco_max: 400        # só posta se achar até esse preço
+    desconto_min: 0       # % mínimo de desconto (o Google Shopping nem sempre informa o preço "de")
 
 # ---- PASSAGENS AÉREAS (Google Voos: compara as companhias) -----------
 # Use o código de 3 letras do aeroporto:
@@ -49,7 +49,13 @@ hospedagens:
     nota_min: 4.0         # e com nota 4.0 ou mais
 
 # ---- PROMOÇÕES ANUNCIADAS (Google: páginas dos últimos 7 dias) -------
+# Em "sites" coloque blogs de promoção confiáveis (deixe vazio para buscar em toda a internet;
+# vídeos e redes sociais são ignorados).
 anuncios:
-  - busca: promoção passagens aéreas
+  - busca: promoção passagens
+    sites:
+      - melhoresdestinos.com.br
+      - passagensimperdiveis.com.br
+      - promocoesaereas.com.br
     ultimos_dias: 7
     maximo_por_vez: 3

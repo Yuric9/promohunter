@@ -8,6 +8,7 @@ from app.config import settings
 from app.models import Hospedagem, ResultadoVoos, TrechoVoo, Voo
 
 SERPAPI_URL = "https://serpapi.com/search.json"
+SELOS = {"deal": "Promoção", "great deal": "Ótima promoção", "good deal": "Boa promoção"}
 
 
 def _serpapi(params: dict) -> dict:
@@ -101,6 +102,6 @@ def buscar_hospedagens(local: str, checkin: date, checkout: date, adultos: int =
             tipo=p.get("type", ""),
             link=p.get("link") or link_busca,
             imagem=(imagens[0].get("original_image") or imagens[0].get("thumbnail") or "") if imagens else "",
-            oferta=p.get("deal_description") or p.get("deal") or "",
+            oferta=p.get("deal_description") or SELOS.get((p.get("deal") or "").strip().lower(), p.get("deal") or ""),
         ))
     return sorted(hospedagens, key=lambda h: h.diaria)

@@ -85,6 +85,7 @@ class ItemHospedagem(BaseModel):
 
 class ItemAnuncio(BaseModel):
     busca: str
+    sites: List[str] = []
     ultimos_dias: int = 7
     maximo_por_vez: int = Field(3, ge=1, le=10)
 
@@ -129,7 +130,9 @@ def posts_produto(item: ItemProduto) -> List[Post]:
     produtos = buscar_google_shopping(item.termo)
     comp = comparar_termo(item.termo, produtos, item.desconto_min, item.preco_min, item.preco_max or float("inf"))
     if not comp:
-        log.info("[produto] %s: nada dentro dos filtros", item.termo)
+        mais_barato = min(produtos, key=lambda p: p.preco, default=None)
+        detalhe = f"mais barato encontrado: {_brl(mais_barato.preco)} ({mais_barato.desconto}% off)" if mais_barato else "nenhum resultado"
+        log.info("[produto] %s: nada dentro dos filtros — %s", item.termo, detalhe)
         return []
     return [Post(chave=comp.melhor_oferta.link, texto=formatar_mensagem(comp), imagem=comp.melhor_oferta.imagem)]
 
@@ -206,7 +209,10 @@ def posts_hospedagem(item: ItemHospedagem, hoje: date) -> List[Post]:
 
 
 def posts_anuncio(item: ItemAnuncio) -> List[Post]:
-    novos = [a for a in buscar_anuncios(item.busca, item.ultimos_dias) if not ja_enviado(a.link)][:item.maximo_por_vez]
+    encontrados = buscar_anuncios(item.busca, item.ultimos_dias, item.sites or None)
+    novos = [a for a in encontrados if not ja_enviado(a.link)][:item.maximo_por_vez]
+    if not novos:
+        log.info("[anúncios] %s: nenhum anúncio novo (%d encontrados)", item.busca, len(encontrados))
     posts = []
     for a in novos:
         texto = (
@@ -245,7 +251,7 @@ def executar(cfg: Monitoramento, simular: bool = False, hoje: Optional[date] = N
                 log.info("↩️  %s: oferta já postada recentemente", nome)
                 continue
             if simular:
-                print(f"\n----- {nome} (simulação, não postado) -----\n{post.texto}\n")
+                log.info("\n----- %s (simulação, não postado) -----\n%s\n", nome, post.texto)
                 resumo["postados"] += 1
                 continue
             envio = enviar_telegram(post.texto, post.imagem)
@@ -288,7 +294,8 @@ def main() -> int:
         log.warning("⚠️  Rodando 1x por dia, isso dá ~%d buscas/mês (o plano grátis tem %d).", total * 30, BUSCAS_GRATIS_MES)
 
     resumo = executar(cfg, simular)
-    log.info("\nResumo: %(postados)d postado(s), %(repetidos)d repetido(s), %(erros)d erro(s).", resumo)
+    verbo = "seria(m) postada(s) (simulação)" if simular else "postada(s)"
+    log.info("\nResumo: %d oferta(s) %s, %d repetida(s), %d erro(s).", resumo["postados"], verbo, resumo["repetidos"], resumo["erros"])
     return 1 if resumo["erros"] and resumo["erros"] == total else 0
 
 

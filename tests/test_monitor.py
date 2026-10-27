@@ -87,7 +87,7 @@ def test_hospedagem_filtra_nota_e_preco_e_prioriza_oferta(monkeypatch, isolar):
 def test_anuncios_novos_sao_postados_uma_vez(monkeypatch, isolar):
     anuncios = [Anuncio(titulo=f"Promo {i}", link=f"https://site/{i}", resumo="Passagens a partir de R$ 199")
                 for i in range(5)]
-    monkeypatch.setattr(monitor, "buscar_anuncios", lambda busca, dias: anuncios)
+    monkeypatch.setattr(monitor, "buscar_anuncios", lambda busca, dias, sites: anuncios)
     cfg = monitor.Monitoramento(anuncios=[{"busca": "promoção passagens", "maximo_por_vez": 2}])
     assert monitor.executar(cfg, hoje=HOJE)["postados"] == 2
     assert monitor.executar(cfg, hoje=HOJE)["postados"] == 2  # os próximos 2, sem repetir
@@ -109,16 +109,17 @@ def test_erro_em_um_item_nao_para_os_outros(monkeypatch, isolar):
     def quebra(*a):
         raise RuntimeError("SerpApi: Invalid API key.")
     monkeypatch.setattr(monitor, "buscar_voos", quebra)
-    monkeypatch.setattr(monitor, "buscar_anuncios", lambda b, d: [Anuncio(titulo="X", link="https://x")])
+    monkeypatch.setattr(monitor, "buscar_anuncios", lambda b, d, s: [Anuncio(titulo="X", link="https://x")])
     cfg = monitor.Monitoramento(voos=[{"origem": "GYN", "destino": "REC", "ida_em_dias": 5}],
                                 anuncios=[{"busca": "promo"}])
     assert monitor.executar(cfg, hoje=HOJE) == {"postados": 1, "repetidos": 0, "erros": 1}
 
 
-def test_simular_nao_posta(monkeypatch, isolar, capsys):
-    monkeypatch.setattr(monitor, "buscar_anuncios", lambda b, d: [Anuncio(titulo="Oferta", link="https://o")])
+def test_simular_nao_posta(monkeypatch, isolar, caplog):
+    caplog.set_level("INFO")
+    monkeypatch.setattr(monitor, "buscar_anuncios", lambda b, d, s: [Anuncio(titulo="Oferta", link="https://o")])
     monitor.executar(monitor.Monitoramento(anuncios=[{"busca": "promo"}]), simular=True, hoje=HOJE)
-    assert isolar == [] and "simulação" in capsys.readouterr().out
+    assert isolar == [] and "simulação" in caplog.text
 
 
 def test_main_avisa_yaml_quebrado(tmp_path, monkeypatch, caplog):
@@ -178,7 +179,8 @@ def test_leitura_google_hoteis(monkeypatch):
              "total_rate": {"extracted_lowest": 620}, "overall_rating": 4.7, "reviews": 812,
              "images": [{"thumbnail": "https://img/sol"}], "deal_description": "20% abaixo do normal"},
             {"name": "Sem preço"},
-            {"name": "Pousada Simples", "rate_per_night": {"extracted_lowest": 180}, "overall_rating": 4.1},
+            {"name": "Pousada Simples", "rate_per_night": {"extracted_lowest": 180}, "overall_rating": 4.1,
+             "deal": "Great Deal"},
         ],
     }))
     hs = viagens.buscar_hospedagens("pousadas em Pirenópolis", date(2026, 11, 21), date(2026, 11, 23))
@@ -186,6 +188,7 @@ def test_leitura_google_hoteis(monkeypatch):
     sol = hs[1]
     assert (sol.diaria, sol.total, sol.nota, sol.imagem, sol.oferta) == (310, 620, 4.7, "https://img/sol", "20% abaixo do normal")
     assert hs[0].link == "https://www.google.com/travel/hotels?x"  # sem site próprio, usa o link da busca
+    assert hs[0].oferta == "Ótima promoção"  # selo traduzido
 
 
 def test_leitura_anuncios(monkeypatch):
@@ -195,13 +198,21 @@ def test_leitura_anuncios(monkeypatch):
 
     def falso_get(url, params, timeout):
         capturado.update(params)
+        # casos reais que apareceram no primeiro teste com a SerpApi
         return RespostaFalsa({"organic_results": [
             {"title": "Passagens por R$ 199", "link": "https://promo/1", "snippet": "Só hoje", "source": "Melhores Destinos",
              "date": "há 2 dias"},
             {"title": "sem link"},
+            {"title": "https://s.afilio.com.br/?id=64e6", "link": "https://s.afilio.com.br/?id=64e6",
+             "snippet": "Não há nenhuma informação disponível para esta página."},
+            {"title": "Turbo 20x vale a pena?", "link": "https://www.youtube.com/watch?v=Xb", "snippet": "milhas"},
+            {"title": "Azul em promoção", "link": "https://www.passagensimperdiveis.com.br/azul", "snippet": "Voos a R$ 150"},
         ]})
 
     monkeypatch.setattr(viagens.requests, "get", falso_get)
-    lista = anuncios.buscar_anuncios("promoção passagens", ultimos_dias=7)
+    lista = anuncios.buscar_anuncios("promoção passagens", ultimos_dias=7,
+                                     sites=["melhoresdestinos.com.br", "passagensimperdiveis.com.br"])
     assert capturado["tbs"] == "qdr:w" and "currency" not in capturado
-    assert len(lista) == 1 and lista[0].fonte == "Melhores Destinos"
+    assert capturado["q"] == "promoção passagens (site:melhoresdestinos.com.br OR site:passagensimperdiveis.com.br)"
+    assert [a.titulo for a in lista] == ["Passagens por R$ 199", "Azul em promoção"]
+    assert lista[1].fonte == "passagensimperdiveis.com.br"
