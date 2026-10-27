@@ -271,7 +271,7 @@ def test_telegram_chat_not_found_explica_o_problema(monkeypatch):
 
     monkeypatch.setattr(telegram.requests, "post", falso_post)
     r = telegram.enviar_telegram("oi", "https://img/x.jpg")
-    assert r["ok"] is False and "link público do canal" in r["erro"]
+    assert r["ok"] is False and "Confira o link do canal" in r["erro"]
     assert len(chamadas) == 1  # não tenta de novo sem a foto
 
 
