@@ -20,8 +20,18 @@ def isolar(tmp_path, monkeypatch):
 
 def test_arquivo_de_exemplo_do_repositorio_e_valido():
     cfg = monitor.carregar(Path(__file__).resolve().parent.parent / "monitoramento.yml")
-    assert cfg.produtos and cfg.voos and cfg.hospedagens and cfg.anuncios
     assert cfg.total_buscas() * 30 <= monitor.BUSCAS_GRATIS_MES
+
+
+def test_exemplos_comentados_do_arquivo_sao_validos(tmp_path):
+    original = (Path(__file__).resolve().parent.parent / "monitoramento.yml").read_text(encoding="utf-8")
+    linhas = [l[3:] if l.startswith("#  ") and not l.startswith("#  =") else "" for l in original.splitlines()]
+    inicio = next(i for i, l in enumerate(linhas) if l.startswith("produtos:"))
+    fim = next(i for i, l in enumerate(linhas) if l.startswith("⚠️"))
+    arquivo = tmp_path / "m.yml"
+    arquivo.write_text("\n".join(linhas[inicio:fim]), encoding="utf-8")
+    cfg = monitor.carregar(arquivo)
+    assert cfg.produtos and cfg.voos and cfg.hospedagens and cfg.anuncios
 
 
 def test_datas_relativas_e_fixas():

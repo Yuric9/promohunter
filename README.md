@@ -30,9 +30,21 @@ Crie estes 3 secrets (nome exatamente igual, valor = a chave):
 
 > Os secrets ficam criptografados: nem quem visita o repositório consegue ver.
 
-### 2. Escolher o que monitorar
-Abra o arquivo **`monitoramento.yml`**, clique no lápis ✏️, edite e clique em **Commit changes**.
-O arquivo tem exemplos comentados de cada tipo.
+### 2. Escolher o que monitorar (formulários)
+Aba **Issues → New issue** e escolha um formulário:
+
+| Formulário | O que preencher |
+|---|---|
+| ✈️ Monitorar passagem aérea | Origem, destino, datas, adultos, preço máximo |
+| 🏨 Monitorar hotel ou pousada | Local, datas, noites, diária máxima, nota mínima |
+| 🛒 Monitorar produto | Nome do produto, preço máximo, desconto mínimo |
+| 📢 Promoções de blogs (grátis) | Nome, palavras-chave, blogs |
+
+Ao salvar, o robô **confere e responde no próprio issue** (✅ ativo ou ❌ o que corrigir).
+Quando achar uma oferta, ele posta no canal **e comenta no issue**. Para parar, **feche o issue**.
+
+> Só valem formulários criados por você (ou colaboradores): issues de outras pessoas são ignorados.
+> Quem prefere escrever à mão pode usar o arquivo `monitoramento.yml` (tem exemplos comentados).
 
 > Cada item gasta 1 busca por dia. O plano grátis da SerpApi tem 250 buscas/mês → até **8 itens**.
 > Os `anuncios` por feed RSS são grátis e não entram nessa conta.

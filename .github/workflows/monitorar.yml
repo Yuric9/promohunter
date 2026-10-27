@@ -3,6 +3,8 @@ name: Monitorar promoções
 on:
   schedule:
     - cron: "17 11 * * *"  # todo dia às 08:17 (horário de Brasília)
+  issues:
+    types: [opened, edited, reopened]  # confere o formulário na hora e responde no issue
   workflow_dispatch:
     inputs:
       simular:
@@ -16,9 +18,10 @@ on:
 
 permissions:
   contents: read
+  issues: write  # ler os formulários e responder neles
 
 concurrency:
-  group: monitorar
+  group: monitorar-${{ github.event_name == 'issues' && github.event.issue.number || 'diario' }}
   cancel-in-progress: false
 
 jobs:
@@ -34,8 +37,18 @@ jobs:
 
       - run: pip install -r requirements.txt
 
+      - name: Conferir formulário
+        if: >-
+          github.event_name == 'issues' &&
+          contains(fromJSON('["OWNER","COLLABORATOR","MEMBER"]'), github.event.issue.author_association)
+        run: python -m app.monitor
+        env:
+          VALIDAR_ISSUE: ${{ github.event.issue.number }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       # Lista das ofertas já postadas, para não repetir no canal
       - name: Recuperar ofertas já postadas
+        if: github.event_name != 'issues'
         uses: actions/cache/restore@v4
         with:
           path: data
@@ -43,14 +56,14 @@ jobs:
           restore-keys: enviados-
 
       - name: Diagnosticar Telegram
-        if: inputs.diagnosticar_telegram
+        if: github.event_name == 'workflow_dispatch' && inputs.diagnosticar_telegram
         run: python -m app.diagnostico_telegram
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
       - name: Pesquisar e postar
-        if: ${{ !inputs.diagnosticar_telegram }}
+        if: github.event_name != 'issues' && !inputs.diagnosticar_telegram
         run: |
           mkdir -p data
           python -m app.monitor
@@ -60,9 +73,10 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           SIMULAR: ${{ inputs.simular }}
           REENVIO_HORAS: "168"  # a mesma oferta só volta a ser postada depois de 7 dias
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Guardar ofertas já postadas
-        if: always()
+        if: always() && github.event_name != 'issues'
         uses: actions/cache/save@v4
         with:
           path: data

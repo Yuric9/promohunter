@@ -1,0 +1,28 @@
+name: "🛒 Monitorar produto"
+description: Compara o preço em várias lojas pelo Google Shopping.
+title: "🛒 Produto: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Preencha e clique em **Create**. O robô confere e responde aqui em alguns segundos.
+        Para parar de monitorar, é só fechar este issue. Cada produto gasta 1 busca por dia.
+  - type: input
+    attributes:
+      label: Produto
+      description: Seja específico para evitar acessórios (ex. "iphone 15 128gb" em vez de "iphone").
+      placeholder: air fryer mondial 4l
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Preço máximo (R$)
+      description: Deixe vazio para sem limite.
+      placeholder: "400"
+  - type: input
+    attributes:
+      label: Desconto mínimo (%)
+      description: O Google Shopping nem sempre informa o preço "de"; 0 = qualquer desconto.
+      value: "0"
+    validations:
+      required: true

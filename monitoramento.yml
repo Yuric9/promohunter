@@ -1,69 +1,41 @@
 # =====================================================================
-#  O QUE O PROMOHUNTER MONITORA
-#  Edite este arquivo direto no GitHub (ícone de lápis ✏️) e clique em
-#  "Commit changes" para salvar. O robô roda sozinho 1x por dia.
+#  CONFIGURAÇÃO DO PROMOHUNTER
 #
-#  ⚠️ Cada item abaixo gasta 1 busca da SerpApi por dia.
-#     Plano grátis = 250 buscas/mês → no máximo 8 itens no total
-#     (os feeds de "anuncios" são grátis e não entram nessa conta).
+#  O jeito fácil é pelos FORMULÁRIOS: aba "Issues" → "New issue" e
+#  escolha ✈️ Passagem, 🏨 Hospedagem, 🛒 Produto ou 📢 Promoções de blogs.
+#  Para parar de monitorar algo, feche o issue.
 #
-#  Dicas de formatação:
-#   - Mantenha os espaços do começo das linhas (2 espaços por nível).
-#   - Para desativar um item, coloque # no começo das linhas dele.
-#   - Datas no formato AAAA-MM-DD, ex.: 2026-12-20
+#  Este arquivo continua funcionando para quem prefere escrever à mão
+#  (tudo que estiver aqui é somado aos formulários). Exemplos:
+#
+#  produtos:
+#    - termo: air fryer
+#      preco_max: 400
+#      desconto_min: 0
+#
+#  voos:
+#    - origem: GYN
+#      destino: REC
+#      ida_em_dias: 45     # ou: ida: 2026-12-20
+#      duracao_dias: 7
+#      adultos: 1
+#      preco_max: 1500
+#      so_preco_baixo: true
+#
+#  hospedagens:
+#    - local: pousadas em Pirenópolis
+#      checkin_em_dias: 20 # ou: checkin: 2026-12-19
+#      noites: 2
+#      adultos: 2
+#      diaria_max: 400
+#      nota_min: 4.0
+#
+#  anuncios:
+#    - nome: Passagens em promoção
+#      feeds: [https://www.melhoresdestinos.com.br/feed]
+#      palavras: [passagem, passagens, voo, voos]
+#      ultimos_dias: 2
+#
+#  ⚠️ Cada produto/voo/hospedagem gasta 1 busca da SerpApi por dia
+#     (plano grátis = 250/mês → até 8 itens). Blogs são grátis.
 # =====================================================================
-
-# ---- PRODUTOS (Google Shopping: compara várias lojas) ----------------
-produtos:
-  - termo: air fryer
-    preco_max: 400        # só posta se achar até esse preço
-    desconto_min: 0       # % mínimo de desconto (o Google Shopping nem sempre informa o preço "de")
-
-# ---- PASSAGENS AÉREAS (Google Voos: compara as companhias) -----------
-# Use o código de 3 letras do aeroporto:
-#   GYN Goiânia · BSB Brasília · GRU/CGH São Paulo · GIG/SDU Rio
-#   REC Recife · SSA Salvador · FOR Fortaleza · NAT Natal · MCZ Maceió
-#   FLN Florianópolis · POA Porto Alegre · LIS Lisboa · MIA Miami
-voos:
-  - origem: GYN
-    destino: REC
-    ida_em_dias: 45       # procura voos saindo daqui a 45 dias
-    duracao_dias: 7       # volta 7 dias depois (0 = só ida)
-    adultos: 1
-    preco_max: 1500       # posta se achar até esse valor...
-    so_preco_baixo: true  # ...ou quando o Google disser que está ABAIXO do normal
-
-  # Exemplo com data fixa:
-  # - origem: BSB
-  #   destino: SSA
-  #   ida: 2026-12-26
-  #   duracao_dias: 5
-  #   preco_max: 1200
-
-# ---- HOTÉIS E POUSADAS (Google Hotéis: compara os sites de reserva) --
-hospedagens:
-  - local: pousadas em Pirenópolis
-    checkin_em_dias: 20   # entrada daqui a 20 dias
-    noites: 2
-    adultos: 2
-    diaria_max: 400       # só mostra até esse valor por noite
-    nota_min: 4.0         # e com nota 4.0 ou mais
-
-# ---- PROMOÇÕES ANUNCIADAS (blogs de promoção) ------------------------
-# Lê os posts novos dos blogs pelo feed RSS: NÃO gasta busca da SerpApi.
-# "palavras" é opcional: só posta o que mencionar alguma delas.
-# (Também dá para usar "busca: texto" para procurar no Google — gasta 1 busca.)
-anuncios:
-  - nome: Passagens em promoção
-    feeds:
-      - https://www.melhoresdestinos.com.br/feed
-    palavras: [passagem, passagens, voo, voos, aérea, aéreas]
-    ultimos_dias: 2       # só posts dos últimos 2 dias
-    maximo_por_vez: 3
-
-  - nome: Hotéis e pacotes em promoção
-    feeds:
-      - https://www.melhoresdestinos.com.br/feed
-    palavras: [hotel, hotéis, pousada, resort, pacote, hospedagem]
-    ultimos_dias: 2
-    maximo_por_vez: 2

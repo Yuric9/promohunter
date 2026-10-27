@@ -1,0 +1,60 @@
+name: "✈️ Monitorar passagem aérea"
+description: Compara as companhias no Google Voos e avisa quando o preço cair.
+title: "✈️ Passagem: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Preencha e clique em **Create**. O robô confere e responde aqui em alguns segundos.
+        Para parar de monitorar, é só fechar este issue. Cada passagem gasta 1 busca por dia.
+  - type: input
+    attributes:
+      label: Aeroporto de origem
+      description: "Código de 3 letras. GYN Goiânia · BSB Brasília · GRU/CGH São Paulo · GIG/SDU Rio · CNF BH"
+      placeholder: GYN
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Aeroporto de destino
+      description: "REC Recife · SSA Salvador · FOR Fortaleza · NAT Natal · MCZ Maceió · FLN Floripa · LIS Lisboa"
+      placeholder: REC
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Data de ida
+      description: Data fixa (DD/MM/AAAA). Deixe vazio se preferir o campo de baixo.
+      placeholder: 20/12/2026
+  - type: input
+    attributes:
+      label: "Ou: ida daqui a quantos dias"
+      description: O robô procura sempre essa quantidade de dias à frente (ex. 45 = daqui a um mês e meio).
+      placeholder: "45"
+  - type: input
+    attributes:
+      label: Quantos dias de viagem
+      description: Volta quantos dias depois da ida. 0 = só ida.
+      value: "7"
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Adultos
+      value: "1"
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Preço máximo (R$)
+      description: Valor total por pessoa (ida e volta). Deixe vazio para sem limite.
+      placeholder: "1500"
+  - type: dropdown
+    attributes:
+      label: Quando avisar
+      options:
+        - Só quando estiver abaixo do preço máximo
+        - Abaixo do preço máximo OU quando o Google disser que está mais barato que o normal
+      default: 1
+    validations:
+      required: true

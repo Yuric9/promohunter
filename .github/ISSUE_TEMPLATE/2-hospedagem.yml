@@ -1,0 +1,53 @@
+name: "🏨 Monitorar hotel ou pousada"
+description: Compara os sites de reserva no Google Hotéis e mostra as melhores diárias.
+title: "🏨 Hospedagem: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Preencha e clique em **Create**. O robô confere e responde aqui em alguns segundos.
+        Para parar de monitorar, é só fechar este issue. Cada hospedagem gasta 1 busca por dia.
+  - type: input
+    attributes:
+      label: Onde
+      description: Escreva como pesquisaria no Google.
+      placeholder: pousadas em Pirenópolis
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Data de entrada
+      description: Data fixa (DD/MM/AAAA). Deixe vazio se preferir o campo de baixo.
+      placeholder: 19/12/2026
+  - type: input
+    attributes:
+      label: "Ou: entrada daqui a quantos dias"
+      placeholder: "20"
+  - type: input
+    attributes:
+      label: Noites
+      value: "2"
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Adultos
+      value: "2"
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Diária máxima (R$)
+      description: Deixe vazio para sem limite.
+      placeholder: "400"
+  - type: dropdown
+    attributes:
+      label: Nota mínima
+      options:
+        - Qualquer nota
+        - "3.5"
+        - "4.0"
+        - "4.5"
+      default: 2
+    validations:
+      required: true

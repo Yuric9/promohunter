@@ -1,0 +1,34 @@
+name: "📢 Promoções de blogs (grátis)"
+description: Lê os posts novos de blogs de promoção. Não gasta buscas da SerpApi.
+title: "📢 Promoções: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Preencha e clique em **Create**. O robô confere e responde aqui em alguns segundos.
+        Só posts com sinal de promoção (preço, % OFF, cupom, cashback) são postados.
+  - type: input
+    attributes:
+      label: Nome
+      placeholder: Passagens para o Nordeste
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Palavras
+      description: "Separadas por vírgula. Só posta o que mencionar alguma delas. Vazio = tudo."
+      placeholder: "recife, salvador, fortaleza, nordeste"
+  - type: textarea
+    attributes:
+      label: Blogs (feeds RSS)
+      description: Um endereço por linha.
+      value: |
+        https://www.melhoresdestinos.com.br/feed
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Posts dos últimos quantos dias
+      value: "2"
+    validations:
+      required: true

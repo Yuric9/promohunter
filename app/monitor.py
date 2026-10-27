@@ -18,6 +18,7 @@ from typing import List, Optional
 import yaml
 from pydantic import BaseModel, Field, ValidationError, model_validator
 
+from app import issues
 from app.config import settings
 from app.services.anuncios import buscar_anuncios
 from app.services.feeds import buscar_nos_feeds
@@ -35,14 +36,18 @@ BUSCAS_GRATIS_MES = 250
 
 # ---- Formato do monitoramento.yml ------------------------------------------------
 
-class ItemProduto(BaseModel):
+class Item(BaseModel):
+    issue: Optional[int] = None  # número do formulário no GitHub, quando veio de lá
+
+
+class ItemProduto(Item):
     termo: str
     preco_min: float = 0
     preco_max: Optional[float] = None
     desconto_min: int = 0
 
 
-class ItemVoo(BaseModel):
+class ItemVoo(Item):
     origem: str = Field(min_length=3, max_length=3)
     destino: str = Field(min_length=3, max_length=3)
     ida: Optional[date] = None
@@ -64,7 +69,7 @@ class ItemVoo(BaseModel):
         return ida, volta
 
 
-class ItemHospedagem(BaseModel):
+class ItemHospedagem(Item):
     local: str
     checkin: Optional[date] = None
     checkin_em_dias: Optional[int] = Field(None, ge=0)
@@ -84,7 +89,7 @@ class ItemHospedagem(BaseModel):
         return entrada, entrada + timedelta(days=self.noites)
 
 
-class ItemAnuncio(BaseModel):
+class ItemAnuncio(Item):
     nome: str = ""
     feeds: List[str] = []  # feeds RSS de blogs de promoção (grátis, não gasta busca)
     palavras: List[str] = []  # só posts que mencionam alguma dessas palavras
@@ -245,18 +250,111 @@ def posts_anuncio(item: ItemAnuncio) -> List[Post]:
     return posts
 
 
+# ---- Formulários (issues do GitHub) --------------------------------------------
+
+TIPOS = {
+    "voo": (ItemVoo, "voos"),
+    "hospedagem": (ItemHospedagem, "hospedagens"),
+    "produto": (ItemProduto, "produtos"),
+    "anuncio": (ItemAnuncio, "anuncios"),
+}
+
+
+def item_do_issue(issue: dict):
+    """Converte um issue em item do monitor. Devolve (tipo, item) ou (None, None) se não for formulário."""
+    tipo, dados = issues.interpretar(issue.get("body") or "")
+    if not tipo:
+        return None, None
+    modelo, _ = TIPOS[tipo]
+    return tipo, modelo(**dados, issue=issue["number"])
+
+
+def adicionar_issues(cfg: Monitoramento) -> int:
+    """Junta à configuração os formulários abertos no GitHub. Devolve quantos foram adicionados."""
+    adicionados = 0
+    for issue in issues.listar_issues_abertos():
+        if not issues.autor_permitido(issue):
+            continue  # repositório público: ignora formulários de estranhos
+        try:
+            tipo, item = item_do_issue(issue)
+        except (ValidationError, ValueError) as e:
+            log.warning("⚠️  Formulário #%s ignorado (preenchimento inválido): %s", issue["number"], e)
+            continue
+        if item:
+            getattr(cfg, TIPOS[tipo][1]).append(item)
+            adicionados += 1
+    return adicionados
+
+
+def descrever(tipo: str, item, hoje: date) -> str:
+    """Resumo em português do que vai ser monitorado (para responder no formulário)."""
+    def preco(v):
+        return _brl(v) if v else "sem limite"
+    if tipo == "voo":
+        ida, volta = item.datas(hoje)
+        quando = f"ida em {_data(ida)}" + (f", volta em {_data(volta)}" if volta else " (só ida)")
+        if item.ida is None:
+            quando += f" — sempre {item.ida_em_dias} dias à frente"
+        aviso = "abaixo de " + preco(item.preco_max) + (" **ou** quando o Google indicar preço abaixo do normal" if item.so_preco_baixo else "")
+        return f"✈️ Passagem **{item.origem.upper()} → {item.destino.upper()}**, {quando}, {item.adultos} adulto(s).\nAviso quando: {aviso}."
+    if tipo == "hospedagem":
+        entrada, saida = item.datas(hoje)
+        return (f"🏨 **{item.local}**, de {_data(entrada)} a {_data(saida)} ({item.noites} noites, {item.adultos} adultos).\n"
+                f"Diária até {preco(item.diaria_max)}, nota mínima {item.nota_min or 'qualquer'}.")
+    if tipo == "produto":
+        return f"🛒 **{item.termo}**, até {preco(item.preco_max)}, desconto mínimo de {item.desconto_min}%."
+    return (f"📢 **{item.titulo}**: posts dos últimos {item.ultimos_dias} dias em {len(item.feeds)} blog(s)"
+            + (f", com as palavras: {', '.join(item.palavras)}." if item.palavras else "."))
+
+
+def validar_issue(numero: int, hoje: Optional[date] = None) -> int:
+    """Chamado quando um formulário é criado/editado: confere e responde no próprio issue."""
+    hoje = hoje or date.today()
+    issue = issues.buscar_issue(numero)
+    if not issues.autor_permitido(issue):
+        log.info("Issue #%s de quem não é dono/colaborador: ignorado.", numero)
+        return 0
+    try:
+        tipo, item = item_do_issue(issue)
+    except (ValidationError, ValueError) as e:
+        issues.comentar(numero, "❌ **Não consegui entender o formulário:**\n\n" + issues.erro_legivel(e)
+                        + "\n\nClique em **⋯ → Edit** no topo deste issue, corrija e salve. Eu confiro de novo.")
+        return 0
+    if not item:
+        return 0  # issue comum, não é formulário do PromoHunter
+    cfg = carregar_tudo()
+    total = cfg.total_buscas()
+    custo = "Este item **não gasta** buscas da SerpApi (lê os blogs direto)." if tipo == "anuncio" else \
+        f"Com ele, o robô faz **{total} busca(s) por dia** (~{total * 30}/mês de {BUSCAS_GRATIS_MES} grátis)."
+    if total * 30 > BUSCAS_GRATIS_MES:
+        custo += " ⚠️ **Passa do plano grátis**: feche algum formulário que você não precisa mais."
+    issues.comentar(numero, "✅ **Monitoramento ativo!**\n\n" + descrever(tipo, item, hoje)
+                    + f"\n\n{custo}\n\nO robô pesquisa todo dia às 08:17 e avisa aqui e no canal quando encontrar "
+                    "uma oferta. Para **parar**, feche este issue (botão *Close issue*).")
+    return 0
+
+
+def carregar_tudo(arquivo: Path = ARQUIVO_PADRAO) -> Monitoramento:
+    """monitoramento.yml + formulários abertos no GitHub (quando rodando no GitHub Actions)."""
+    cfg = carregar(arquivo) if arquivo.exists() else Monitoramento()
+    if issues.disponivel():
+        n = adicionar_issues(cfg)
+        log.info("📝 %d formulário(s) aberto(s) no GitHub incluído(s).", n)
+    return cfg
+
+
 # ---- Execução --------------------------------------------------------------------
 
 def executar(cfg: Monitoramento, simular: bool = False, hoje: Optional[date] = None) -> dict:
     hoje = hoje or date.today()
     resumo = {"postados": 0, "repetidos": 0, "erros": 0}
     tarefas = (
-        [(f"produto '{i.termo}'", lambda i=i: posts_produto(i)) for i in cfg.produtos]
-        + [(f"voo {i.origem}→{i.destino}", lambda i=i: posts_voo(i, hoje)) for i in cfg.voos]
-        + [(f"hospedagem '{i.local}'", lambda i=i: posts_hospedagem(i, hoje)) for i in cfg.hospedagens]
-        + [(f"anúncios '{i.titulo}'", lambda i=i: posts_anuncio(i)) for i in cfg.anuncios]
+        [(f"produto '{i.termo}'", i, lambda i=i: posts_produto(i)) for i in cfg.produtos]
+        + [(f"voo {i.origem}→{i.destino}", i, lambda i=i: posts_voo(i, hoje)) for i in cfg.voos]
+        + [(f"hospedagem '{i.local}'", i, lambda i=i: posts_hospedagem(i, hoje)) for i in cfg.hospedagens]
+        + [(f"anúncios '{i.titulo}'", i, lambda i=i: posts_anuncio(i)) for i in cfg.anuncios]
     )
-    for nome, tarefa in tarefas:
+    for nome, item, tarefa in tarefas:
         try:
             posts = tarefa()
         except Exception as e:
@@ -277,6 +375,8 @@ def executar(cfg: Monitoramento, simular: bool = False, hoje: Optional[date] = N
                 marcar_enviado(post.chave)
                 resumo["postados"] += 1
                 log.info("✅ %s: postado no Telegram", nome)
+                if item.issue:
+                    issues.comentar(item.issue, "🔔 **Nova oferta postada no canal:**\n\n" + issues.html_para_markdown(post.texto))
             else:
                 resumo["erros"] += 1
                 log.error("❌ %s: falha ao postar no Telegram: %s", nome, envio["erro"])
@@ -287,8 +387,10 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     arquivo = Path(os.environ.get("MONITORAMENTO", ARQUIVO_PADRAO))
     simular = os.environ.get("SIMULAR", "").lower() in ("1", "true", "sim")
+    if os.environ.get("VALIDAR_ISSUE"):
+        return validar_issue(int(os.environ["VALIDAR_ISSUE"]))
     try:
-        cfg = carregar(arquivo)
+        cfg = carregar_tudo(arquivo)
     except FileNotFoundError:
         log.error("Arquivo %s não encontrado.", arquivo)
         return 1
