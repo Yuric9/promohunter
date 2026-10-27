@@ -200,13 +200,15 @@ def test_leitura_anuncios(monkeypatch):
         capturado.update(params)
         # casos reais que apareceram no primeiro teste com a SerpApi
         return RespostaFalsa({"organic_results": [
-            {"title": "Passagens por R$ 199", "link": "https://promo/1", "snippet": "Só hoje", "source": "Melhores Destinos",
+            {"title": "Passagens por R$ 199", "link": "https://www.melhoresdestinos.com.br/promo-1", "snippet": "Só hoje", "source": "Melhores Destinos",
              "date": "há 2 dias"},
             {"title": "sem link"},
             {"title": "https://s.afilio.com.br/?id=64e6", "link": "https://s.afilio.com.br/?id=64e6",
              "snippet": "Não há nenhuma informação disponível para esta página."},
             {"title": "Turbo 20x vale a pena?", "link": "https://www.youtube.com/watch?v=Xb", "snippet": "milhas"},
             {"title": "Azul em promoção", "link": "https://www.passagensimperdiveis.com.br/azul", "snippet": "Voos a R$ 150"},
+            {"title": "Application error: a client-side exception", "link": "https://www.melhoresdestinos.com.br/x"},
+            {"title": "Voos baratos para Barreiras", "link": "https://tn.wego.com/en/flights/br", "snippet": "Ofertas"},
         ]})
 
     monkeypatch.setattr(viagens.requests, "get", falso_get)

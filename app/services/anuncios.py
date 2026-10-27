@@ -11,20 +11,29 @@ log = logging.getLogger(__name__)
 PERIODOS = {1: "qdr:d", 7: "qdr:w", 30: "qdr:m"}
 # Vídeos e redes sociais raramente são o anúncio da promoção em si
 SITES_IGNORADOS = ("youtube.com", "youtu.be", "tiktok.com", "instagram.com", "facebook.com", "x.com", "twitter.com")
-SEM_CONTEUDO = ("não há nenhuma informação disponível", "no information is available")
+SEM_CONTEUDO = ("não há nenhuma informação disponível", "no information is available", "application error",
+                "page not found", "página não encontrada")
 
 
 def _dominio(link: str) -> str:
     return urlparse(link).netloc.lower().removeprefix("www.")
 
 
-def _util(r: dict) -> bool:
+def _do_site(link: str, sites) -> bool:
+    dominio = _dominio(link)
+    return any(dominio == s or dominio.endswith("." + s) for s in sites)
+
+
+def _util(r: dict, sites: Optional[List[str]]) -> bool:
     titulo, link = r.get("title", ""), r.get("link", "")
     if not link or not titulo or titulo.startswith("http"):
         return False
-    if any(_dominio(link) == s or _dominio(link).endswith("." + s) for s in SITES_IGNORADOS):
+    if _do_site(link, SITES_IGNORADOS):
         return False
-    return not any(t in (r.get("snippet") or "").lower() for t in SEM_CONTEUDO)
+    if sites and not _do_site(link, [s.lower().removeprefix("www.") for s in sites]):
+        return False  # o Google às vezes ignora o filtro de sites; conferimos aqui
+    texto = f"{titulo} {r.get('snippet') or ''}".lower()
+    return not any(t in texto for t in SEM_CONTEUDO)
 
 
 def buscar_anuncios(busca: str, ultimos_dias: int = 7, sites: Optional[List[str]] = None,
@@ -46,5 +55,5 @@ def buscar_anuncios(busca: str, ultimos_dias: int = 7, sites: Optional[List[str]
             fonte=r.get("source") or _dominio(r["link"]),
             data=r.get("date", ""),
         )
-        for r in brutos if _util(r)
+        for r in brutos if _util(r, sites)
     ]
