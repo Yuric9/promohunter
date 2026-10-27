@@ -31,11 +31,17 @@ def main() -> int:
         return 1
     print(f"✅ Token válido: robô @{eu['result']['username']} ({eu['result']['first_name']})\n")
 
-    original = settings.telegram_chat_id
     alvo = settings.telegram_destino
-    print(f"TELEGRAM_CHAT_ID cadastrado: {len(original)} caractere(s); usado como: {alvo}")
+    # O log do GitHub é público: nunca mostrar o valor cadastrado, só o tipo dele.
     if alvo.startswith("+"):
-        print("⚠️ Isso é um link de CONVITE de canal privado. Deixe o canal público e use o link público dele.")
+        tipo = "link de CONVITE (t.me/+...) ⚠️ não funciona: use o link público do canal ou o id numérico"
+    elif alvo.startswith("@"):
+        tipo = f"nome de canal público ({len(alvo) - 1} letras)"
+    elif alvo.lstrip("-").isdigit():
+        tipo = "id numérico"
+    else:
+        tipo = "vazio" if not alvo else "formato desconhecido"
+    print(f"TELEGRAM_CHAT_ID cadastrado: {tipo}")
     info = chamar("getChat", chat_id=alvo) if alvo else {"ok": False, "description": "vazio"}
     if info.get("ok"):
         c = info["result"]
