@@ -155,7 +155,17 @@ def posts_produto(item: ItemProduto) -> List[Post]:
         detalhe = f"mais barato encontrado: {_brl(mais_barato.preco)} ({mais_barato.desconto}% off)" if mais_barato else "nenhum resultado"
         log.info("[produto] %s: nada dentro dos filtros — %s", item.termo, detalhe)
         return []
-    return [Post(chave=comp.melhor_oferta.link, texto=formatar_mensagem(comp), imagem=comp.melhor_oferta.imagem)]
+    texto = formatar_mensagem(comp)
+    # Além da melhor oferta (maior desconto), mostra as mais baratas dentro dos filtros
+    outras = sorted((p for p in comp.todas_ofertas if p.link != comp.melhor_oferta.link), key=lambda p: p.preco)[:3]
+    if outras:
+        linhas = []
+        for p in outras:
+            titulo = p.titulo if len(p.titulo) <= 60 else p.titulo[:57] + "..."
+            loja = f" · {escape(p.loja)}" if p.loja else ""
+            linhas.append(f'• <b>{_brl(p.preco)}</b> — <a href="{escape(p.link, quote=True)}">{escape(titulo)}</a>{loja}')
+        texto += "\n\n💸 <b>Mais baratas encontradas:</b>\n" + "\n".join(linhas)
+    return [Post(chave=comp.melhor_oferta.link, texto=texto, imagem=comp.melhor_oferta.imagem)]
 
 
 def posts_voo(item: ItemVoo, hoje: date) -> List[Post]:

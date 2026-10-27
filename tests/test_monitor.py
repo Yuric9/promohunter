@@ -115,6 +115,21 @@ def test_produto_usa_filtros(monkeypatch, isolar):
     assert "Air Fryer A" in isolar[0] and "Magalu" in isolar[0]
 
 
+def test_produto_mostra_tambem_as_mais_baratas(monkeypatch, isolar):
+    produtos = [
+        Produto(titulo="iPhone 17 Air 1TB", preco=9289, preco_original=9989, desconto=7, link="https://air", plataforma="G", loja="Intec"),
+        Produto(titulo="iPhone 17 128GB", preco=5999, link="https://17", plataforma="G", loja="Magalu"),
+        Produto(titulo="iPhone 17 256GB", preco=6799, link="https://17b", plataforma="G", loja="Amazon"),
+        Produto(titulo="Capinha iPhone 17", preco=39, link="https://capa", plataforma="G"),
+    ]
+    monkeypatch.setattr(monitor, "buscar_google_shopping", lambda termo: produtos)
+    cfg = monitor.Monitoramento(produtos=[{"termo": "iphone 17", "preco_min": 3000}])
+    monitor.executar(cfg, hoje=HOJE)
+    texto = isolar[0]
+    assert "iPhone 17 Air 1TB" in texto and "Mais baratas encontradas" in texto
+    assert texto.index("R$ 5.999,00") < texto.index("R$ 6.799,00") and "Capinha" not in texto
+
+
 def test_erro_em_um_item_nao_para_os_outros(monkeypatch, isolar):
     def quebra(*a):
         raise RuntimeError("SerpApi: Invalid API key.")
