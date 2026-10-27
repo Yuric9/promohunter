@@ -9,6 +9,10 @@ on:
         description: "Só simular (mostra as mensagens no log, sem postar no Telegram)"
         type: boolean
         default: false
+      diagnosticar_telegram:
+        description: "Só diagnosticar o Telegram (mostra o endereço certo do canal, não pesquisa nada)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -38,7 +42,15 @@ jobs:
           key: enviados-${{ github.run_id }}
           restore-keys: enviados-
 
+      - name: Diagnosticar Telegram
+        if: inputs.diagnosticar_telegram
+        run: python -m app.diagnostico_telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
       - name: Pesquisar e postar
+        if: ${{ !inputs.diagnosticar_telegram }}
         run: |
           mkdir -p data
           python -m app.monitor

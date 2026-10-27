@@ -273,3 +273,23 @@ def test_telegram_chat_not_found_explica_o_problema(monkeypatch):
     r = telegram.enviar_telegram("oi", "https://img/x.jpg")
     assert r["ok"] is False and "link público do canal" in r["erro"]
     assert len(chamadas) == 1  # não tenta de novo sem a foto
+
+
+def test_diagnostico_telegram_mostra_endereco_certo(monkeypatch, capsys):
+    from app import diagnostico_telegram as d
+
+    monkeypatch.setattr(settings, "telegram_bot_token", "123:ABC")
+    monkeypatch.setattr(settings, "telegram_chat_id", "@promos_do_yuri")
+    respostas = {
+        "getMe": {"ok": True, "result": {"id": 1, "username": "yuri_promos_bot", "first_name": "@promos_do_yuri"}},
+        "getChat": {"ok": False, "description": "Bad Request: chat not found"},
+        "getUpdates": {"ok": True, "result": [
+            {"channel_post": {"chat": {"id": -1001234, "title": "Promos do Yuri 🔥", "type": "channel", "username": "promosdoyuri"}}},
+            {"message": {"chat": {"id": 5, "type": "private"}}},
+        ]},
+    }
+    monkeypatch.setattr(d, "chamar", lambda metodo, **p: respostas[metodo])
+    assert d.main() == 1
+    saida = capsys.readouterr().out
+    assert "robô @yuri_promos_bot" in saida and "não encontrou" in saida
+    assert "Promos do Yuri 🔥 (channel) → use no TELEGRAM_CHAT_ID: @promosdoyuri" in saida
