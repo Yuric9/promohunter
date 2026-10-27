@@ -88,6 +88,7 @@ class ItemAnuncio(BaseModel):
     nome: str = ""
     feeds: List[str] = []  # feeds RSS de blogs de promoção (grátis, não gasta busca)
     palavras: List[str] = []  # só posts que mencionam alguma dessas palavras
+    so_promocoes: bool = True  # descarta notícias sem preço/desconto/cupom
     busca: str = ""  # ou: busca no Google (gasta 1 busca)
     sites: List[str] = []
     ultimos_dias: int = 2
@@ -224,7 +225,7 @@ def posts_hospedagem(item: ItemHospedagem, hoje: date) -> List[Post]:
 
 
 def posts_anuncio(item: ItemAnuncio) -> List[Post]:
-    encontrados = buscar_nos_feeds(item.feeds, item.palavras, item.ultimos_dias) if item.feeds else []
+    encontrados = buscar_nos_feeds(item.feeds, item.palavras, item.ultimos_dias, item.so_promocoes) if item.feeds else []
     if item.busca:
         encontrados += buscar_anuncios(item.busca, item.ultimos_dias, item.sites or None)
     novos = [a for a in encontrados if not ja_enviado(a.link)][:item.maximo_por_vez]

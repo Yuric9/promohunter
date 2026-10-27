@@ -57,7 +57,6 @@ anuncios:
   - nome: Passagens em promoção
     feeds:
       - https://www.melhoresdestinos.com.br/feed
-      - https://passagensimperdiveis.com.br/feed
     palavras: [passagem, passagens, voo, voos, aérea, aéreas]
     ultimos_dias: 2       # só posts dos últimos 2 dias
     maximo_por_vez: 3

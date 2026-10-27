@@ -227,6 +227,8 @@ RSS = """<?xml version="1.0" encoding="UTF-8"?>
 <pubDate>Tue, 27 Oct 2026 10:00:00 -0300</pubDate></item>
 <item><title>Resort all inclusive com 40% off</title><link>https://md/2</link>
 <description>Pacote em Porto de Galinhas</description><pubDate>Tue, 27 Oct 2026 09:00:00 -0300</pubDate></item>
+<item><title>Gol fecha acordo de codeshare com companhia do Chile</title><link>https://md/noticia</link>
+<description>Voos da Sky ficam disponíveis</description><pubDate>Tue, 27 Oct 2026 08:00:00 -0300</pubDate></item>
 <item><title>Passagens antigas</title><link>https://md/velho</link><pubDate>Mon, 01 Sep 2026 10:00:00 -0300</pubDate></item>
 </channel></rss>"""
 
@@ -260,7 +262,10 @@ def test_feeds_rss_e_atom_filtrando_data_e_palavras(monkeypatch):
 
     monkeypatch.setattr(feeds, "datetime", Agora)
     todos = feeds.buscar_nos_feeds(["https://md/feed", "https://atom/feed"], ultimos_dias=2)
-    assert [a.link for a in todos] == ["https://md/1", "https://md/2", "https://atom/1"]  # o antigo ficou de fora
+    # o post antigo e a notícia sem promoção ficam de fora
+    assert [a.link for a in todos] == ["https://md/1", "https://md/2", "https://atom/1"]
+    com_noticias = feeds.buscar_nos_feeds(["https://md/feed"], ultimos_dias=2, so_promocoes=False)
+    assert "https://md/noticia" in [a.link for a in com_noticias]
     assert todos[0].fonte == "Melhores Destinos" and todos[0].resumo == "Ida e volta saindo de Goiânia."
     assert todos[0].data == "27/10 10:00"
 
@@ -281,7 +286,7 @@ def test_feed_com_erro_nao_derruba_os_outros(monkeypatch):
 
 
 def test_anuncios_por_feed_nao_gastam_busca(monkeypatch, isolar):
-    monkeypatch.setattr(monitor, "buscar_nos_feeds", lambda feeds, palavras, dias: [
+    monkeypatch.setattr(monitor, "buscar_nos_feeds", lambda feeds, palavras, dias, so_promo: [
         Anuncio(titulo="Passagens para Recife por R$ 389", link="https://md/1", fonte="Melhores Destinos", data="27/10 10:00")])
     cfg = monitor.Monitoramento(anuncios=[{"nome": "Passagens em promoção", "feeds": ["https://md/feed"]}])
     assert cfg.total_buscas() == 0

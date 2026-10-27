@@ -14,6 +14,8 @@ from app.models import Anuncio
 log = logging.getLogger(__name__)
 ATOM = "{http://www.w3.org/2005/Atom}"
 BRASILIA = timezone(timedelta(hours=-3))
+# Sinais de que o post é uma promoção (e não só uma notícia de viagem)
+SINAIS_PROMOCAO = re.compile(r"r\$\s*\d|\d+\s*%|\bpromo|\bdesconto|\bcupo|\bcashback|\bofertas?\b|\bbarat|\boff\b", re.I)
 
 
 def _texto(el, tag: str) -> str:
@@ -64,8 +66,10 @@ def ler_feed(url: str) -> List[Anuncio]:
     return anuncios
 
 
-def buscar_nos_feeds(feeds: List[str], palavras: Optional[List[str]] = None, ultimos_dias: int = 2) -> List[Anuncio]:
-    """Junta os posts recentes dos feeds; com `palavras`, só os que mencionam alguma delas."""
+def buscar_nos_feeds(feeds: List[str], palavras: Optional[List[str]] = None, ultimos_dias: int = 2,
+                     so_promocoes: bool = True) -> List[Anuncio]:
+    """Junta os posts recentes dos feeds; com `palavras`, só os que mencionam alguma delas.
+    Com `so_promocoes`, descarta notícias sem preço, desconto, cupom etc."""
     limite = datetime.now(timezone.utc) - timedelta(days=ultimos_dias)
     termos = [p.lower() for p in palavras or []]
     resultado = []
@@ -78,6 +82,8 @@ def buscar_nos_feeds(feeds: List[str], palavras: Optional[List[str]] = None, ult
         recentes = [a for a in posts if (a.publicado or limite) >= limite]
         if termos:
             recentes = [a for a in recentes if any(t in f"{a.titulo} {a.resumo}".lower() for t in termos)]
+        if so_promocoes:
+            recentes = [a for a in recentes if SINAIS_PROMOCAO.search(f"{a.titulo} {a.resumo}")]
         log.info("[feed] %s: %d post(s), %d recente(s) e dentro das palavras", url, len(posts), len(recentes))
         resultado.extend(recentes)
     return resultado
