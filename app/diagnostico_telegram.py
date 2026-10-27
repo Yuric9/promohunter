@@ -31,11 +31,11 @@ def main() -> int:
         return 1
     print(f"✅ Token válido: robô @{eu['result']['username']} ({eu['result']['first_name']})\n")
 
-    alvo = settings.telegram_chat_id.strip()
-    print(f"TELEGRAM_CHAT_ID cadastrado: {len(alvo)} caractere(s), começa com {alvo[:1]!r}"
-          + ("" if alvo.startswith(("@", "-")) else "  ⚠️ deveria começar com @ (canal público) ou - (id numérico)"))
-    if alvo != settings.telegram_chat_id:
-        print("⚠️ Há espaços antes ou depois do valor cadastrado.")
+    original = settings.telegram_chat_id
+    alvo = settings.telegram_destino
+    print(f"TELEGRAM_CHAT_ID cadastrado: {len(original)} caractere(s); usado como: {alvo}")
+    if alvo.startswith("+"):
+        print("⚠️ Isso é um link de CONVITE de canal privado. Deixe o canal público e use o link público dele.")
     info = chamar("getChat", chat_id=alvo) if alvo else {"ok": False, "description": "vazio"}
     if info.get("ok"):
         c = info["result"]

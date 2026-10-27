@@ -32,8 +32,8 @@ def formatar_mensagem(comp: Comparativo) -> str:
 
 
 DICAS = {
-    "chat not found": "o TELEGRAM_CHAT_ID não corresponde ao canal. Use o link público do canal com @ "
-                      "(ex.: @promos_do_yuri), e não o nome do robô",
+    "chat not found": "o TELEGRAM_CHAT_ID não corresponde a um canal público. Confira o link do canal "
+                      "(ex.: t.me/promos_do_yuri) — não use o nome do robô nem um link de convite privado",
     "unauthorized": "o TELEGRAM_BOT_TOKEN está errado ou foi trocado no /revoke",
     "not enough rights": "o robô não é administrador do canal com permissão de publicar",
     "bot is not a member": "o robô não foi adicionado ao canal",
@@ -59,7 +59,7 @@ def enviar_telegram(texto: str, imagem: str = "") -> dict:
     """Posta no canal/grupo configurado. Com imagem vai como foto com legenda."""
     if not (settings.telegram_bot_token and settings.telegram_chat_id):
         return {"ok": False, "erro": "Telegram não configurado (TELEGRAM_BOT_TOKEN e TELEGRAM_CHAT_ID)"}
-    base = {"chat_id": settings.telegram_chat_id, "parse_mode": "HTML"}
+    base = {"chat_id": settings.telegram_destino, "parse_mode": "HTML"}
     try:
         if imagem.startswith("http"):
             try:

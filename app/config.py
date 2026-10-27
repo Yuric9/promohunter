@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -22,6 +23,15 @@ class Settings(BaseSettings):
 
     data_dir: Path = Path("data")
     reenvio_horas: int = 24
+
+    @property
+    def telegram_destino(self) -> str:
+        """Aceita '@canal', 'canal', 't.me/canal', 'https://t.me/canal' ou o id numérico (-100...)."""
+        valor = self.telegram_chat_id.strip().strip('"').strip("'")
+        valor = re.sub(r"^(https?://)?(www\.)?(t|telegram)\.(me|dog)/", "", valor).split("?")[0].strip("/")
+        if valor and not valor.startswith(("@", "-", "+")) and not valor.lstrip("-").isdigit():
+            valor = "@" + valor
+        return valor
 
     @property
     def cors_list(self) -> list[str]:

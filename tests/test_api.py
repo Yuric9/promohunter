@@ -275,6 +275,19 @@ def test_telegram_chat_not_found_explica_o_problema(monkeypatch):
     assert len(chamadas) == 1  # não tenta de novo sem a foto
 
 
+@pytest.mark.parametrize("cadastrado,esperado", [
+    ("@promos_do_yuri", "@promos_do_yuri"),
+    ("promos_do_yuri", "@promos_do_yuri"),
+    ("https://t.me/promos_do_yuri", "@promos_do_yuri"),
+    (" t.me/promos_do_yuri/ ", "@promos_do_yuri"),
+    ("http://telegram.me/promos_do_yuri?x=1", "@promos_do_yuri"),
+    ("-1001234567890", "-1001234567890"),
+])
+def test_telegram_aceita_link_do_canal(monkeypatch, cadastrado, esperado):
+    monkeypatch.setattr(settings, "telegram_chat_id", cadastrado)
+    assert settings.telegram_destino == esperado
+
+
 def test_diagnostico_telegram_mostra_endereco_certo(monkeypatch, capsys):
     from app import diagnostico_telegram as d
 
