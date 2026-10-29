@@ -67,9 +67,9 @@ lojas:
   - {site: https://www.penalty.com.br, busca: tênis, excluir: [infantil, juvenil, bolinha, bola, kit], preco_max: 300, maximo_por_vez: 2}
   - {site: https://www.umbro.com.br, busca: tênis, preco_max: 300, maximo_por_vez: 2}
 
-  # 👞 Sapatos e sapatênis masculinos
-  - {site: https://www.ferracini.com.br, maximo_por_vez: 2}
-  - {site: https://www.democrata.com.br, maximo_por_vez: 2}
+  # 👞 Sapatos e sapatênis masculinos — só abaixo de R$ 300
+  - {site: https://www.ferracini.com.br, preco_max: 300, maximo_por_vez: 2}
+  - {site: https://www.democrata.com.br, preco_max: 300, maximo_por_vez: 2}
 
   # 💻 Tecnologia — só abaixo de R$ 2.500
   - {site: https://www.motorola.com.br, busca: smartphone, preco_max: 2500, maximo_por_vez: 3}
