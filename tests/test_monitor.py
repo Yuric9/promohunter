@@ -115,19 +115,33 @@ def test_produto_usa_filtros(monkeypatch, isolar):
     assert "Air Fryer A" in isolar[0] and "Magalu" in isolar[0]
 
 
-def test_produto_mostra_tambem_as_mais_baratas(monkeypatch, isolar):
+def test_produto_mensagem_contem_apenas_os_cinco_campos(monkeypatch, isolar):
     produtos = [
-        Produto(titulo="iPhone 17 Air 1TB", preco=9289, preco_original=9989, desconto=7, link="https://air", plataforma="G", loja="Intec"),
-        Produto(titulo="iPhone 17 128GB", preco=5999, link="https://17", plataforma="G", loja="Magalu"),
-        Produto(titulo="iPhone 17 256GB", preco=6799, link="https://17b", plataforma="G", loja="Amazon"),
-        Produto(titulo="Capinha iPhone 17", preco=39, link="https://capa", plataforma="G"),
+        Produto(titulo="Tênis de corrida", preco=240, preco_original=300, desconto=20,
+                link="https://loja.exemplo/produto", plataforma="G", loja="Loja Exemplo"),
     ]
     monkeypatch.setattr(monitor, "buscar_google_shopping", lambda termo: produtos)
-    cfg = monitor.Monitoramento(produtos=[{"termo": "iphone 17", "preco_min": 3000}])
+    cfg = monitor.Monitoramento(produtos=[{"termo": "tênis"}])
     monitor.executar(cfg, hoje=HOJE)
     texto = isolar[0]
-    assert "iPhone 17 Air 1TB" in texto and "Mais baratas encontradas" in texto
-    assert texto.index("R$ 5.999,00") < texto.index("R$ 6.799,00") and "Capinha" not in texto
+    assert "Tênis de corrida" in texto
+    assert "Preço antigo: R$ 300,00" in texto
+    assert "Preço novo: R$ 240,00" in texto
+    assert "Desconto: 20%" in texto
+    assert "https://loja.exemplo/produto" in texto
+    assert "Loja Exemplo" not in texto
+    assert "Economia" not in texto and "Mais baratas encontradas" not in texto
+
+
+def test_produto_com_desconto_abaixo_de_20_nao_passa_no_filtro_padrao(monkeypatch, isolar):
+    produtos = [
+        Produto(titulo="Tênis casual", preco=90, preco_original=100, desconto=10,
+                link="https://loja.exemplo/tenis", plataforma="G"),
+    ]
+    monkeypatch.setattr(monitor, "buscar_google_shopping", lambda termo: produtos)
+    cfg = monitor.Monitoramento(produtos=[{"termo": "tênis"}])
+    monitor.executar(cfg, hoje=HOJE)
+    assert isolar == []
 
 
 def test_erro_em_um_item_nao_para_os_outros(monkeypatch, isolar):
