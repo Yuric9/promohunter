@@ -11,6 +11,7 @@ import logging
 import os
 import re
 import sys
+import time
 from datetime import date, timedelta
 from html import escape
 from pathlib import Path
@@ -439,8 +440,9 @@ def carregar_tudo(arquivo: Path = ARQUIVO_PADRAO) -> Monitoramento:
 # ---- Execução --------------------------------------------------------------------
 
 def executar(cfg: Monitoramento, simular: bool = False, hoje: Optional[date] = None,
-             limite: Optional[int] = None) -> dict:
-    """Pesquisa tudo e posta. `limite` = máximo de posts nesta execução (o resto fica para a próxima)."""
+             limite: Optional[int] = None, inicio: int = 0) -> dict:
+    """Pesquisa tudo e posta. `limite` = máximo de posts nesta execução (o resto fica para a próxima).
+    `inicio` gira a ordem dos itens, para que a cada execução outras lojas venham primeiro."""
     hoje = hoje or date.today()
     resumo = {"postados": 0, "repetidos": 0, "erros": 0}
     tarefas = (
@@ -458,6 +460,9 @@ def executar(cfg: Monitoramento, simular: bool = False, hoje: Optional[date] = N
         except Exception as e:
             resumo["erros"] += 1
             log.error("❌ %s: %s", nome, e)
+    if resultados:
+        k = inicio % len(resultados)
+        resultados = resultados[k:] + resultados[:k]
     # 2) posta intercalando: 1 oferta de cada item por rodada, para o limite não ficar só nos primeiros da lista
     rodadas = max((len(posts) for _, _, posts in resultados), default=0)
     fila = [(nome, item, posts[r]) for r in range(rodadas) for nome, item, posts in resultados if r < len(posts)]
@@ -520,7 +525,8 @@ def main() -> int:
     if total * 30 > BUSCAS_GRATIS_MES:
         log.warning("⚠️  Rodando 1x por dia, isso dá ~%d buscas/mês (o plano grátis tem %d).", total * 30, BUSCAS_GRATIS_MES)
 
-    resumo = executar(cfg, simular, limite=int(os.environ.get("MAXIMO_POSTS") or 0) or None)
+    resumo = executar(cfg, simular, limite=int(os.environ.get("MAXIMO_POSTS") or 0) or None,
+                      inicio=int(time.time() // 1800))  # muda a cada meia hora
     verbo = "seria(m) postada(s) (simulação)" if simular else "postada(s)"
     log.info("\nResumo: %d oferta(s) %s, %d repetida(s), %d erro(s).", resumo["postados"], verbo, resumo["repetidos"], resumo["erros"])
     if resumo["erros"] and not resumo["postados"]:
