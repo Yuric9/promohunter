@@ -1,0 +1,29 @@
+name: "🏬 Monitorar loja (grátis)"
+description: Lê as ofertas direto no site da loja e posta as que tiverem desconto grande. Não gasta buscas da SerpApi.
+title: "🏬 Loja: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Preencha e clique em **Create**. O robô confere se consegue ler a loja e responde aqui.
+        Funciona com lojas feitas nas plataformas **VTEX** e **Shopify** (a maioria das lojas de marca).
+  - type: input
+    attributes:
+      label: Site da loja
+      placeholder: https://www.mizuno.com.br
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Só produtos com estas palavras
+      description: "Opcional. Ex.: tênis corrida. Vazio = olha as maiores ofertas da loja inteira."
+  - type: input
+    attributes:
+      label: Desconto mínimo (%)
+      value: "20"
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Preço máximo (R$)
+      description: Deixe vazio para sem limite.

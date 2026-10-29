@@ -93,7 +93,9 @@ def pesquisar(pedido: Pedido, hoje: Optional[date] = None):
                 (f" com diária até {monitor._brl(pedido.preco_max)}." if pedido.preco_max else "."), ""
         return posts[0].texto, posts[0].imagem
 
-    posts = monitor.posts_produto(monitor.ItemProduto(termo=pedido.termo, preco_max=pedido.preco_max))
+    # Na conversa vale qualquer desconto: o Google Shopping nem sempre informa o preço "de"
+    item = monitor.ItemProduto(termo=pedido.termo, preco_max=pedido.preco_max, desconto_min=0)
+    posts = monitor.posts_produto(item, mais_baratas=True)
     if not posts:
         return f"😕 Não encontrei “{pedido.termo}”" + \
             (f" até {monitor._brl(pedido.preco_max)}." if pedido.preco_max else ". Tente escrever de outro jeito."), ""

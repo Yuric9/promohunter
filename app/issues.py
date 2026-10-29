@@ -53,9 +53,16 @@ CAMPOS = {
         "blogs (feeds rss)": "feeds",
         "posts dos últimos quantos dias": "ultimos_dias",
     },
+    "loja": {
+        "site da loja": "site",
+        "só produtos com estas palavras": "busca",
+        "desconto mínimo (%)": "desconto_min",
+        "preço máximo (r$)": "preco_max",
+    },
 }
 # Campo que identifica o tipo do formulário
-MARCADORES = {"aeroporto de origem": "voo", "onde": "hospedagem", "produto": "produto", "blogs (feeds rss)": "anuncio"}
+MARCADORES = {"aeroporto de origem": "voo", "onde": "hospedagem", "produto": "produto", "blogs (feeds rss)": "anuncio",
+              "site da loja": "loja"}
 
 
 def ler_formulario(corpo: str) -> Dict[str, str]:

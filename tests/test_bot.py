@@ -4,7 +4,8 @@ import pytest
 
 from app import bot
 from app.config import settings
-from app.models import ResultadoVoos, Voo
+from app import monitor
+from app.models import Produto, ResultadoVoos, Voo
 
 
 @pytest.fixture
@@ -78,6 +79,16 @@ def test_voo_responde_com_os_mais_baratos(tg, monkeypatch):
     assert capturado == {"origem": "GYN", "destino": "REC", "ida": date(2030, 12, 20), "volta": date(2030, 12, 27)}
     assert "Goiânia → Recife" in resposta and "R$ 1.089,00" in resposta and "R$ 1.890,00" not in resposta
     assert "ABAIXO do normal" in resposta
+
+
+def test_produto_na_conversa_aceita_qualquer_desconto_e_mostra_as_mais_baratas(tg, monkeypatch):
+    # o Google Shopping nem sempre informa o preço "de": na conversa isso não pode esconder os resultados
+    produtos = [Produto(titulo="iPhone 15 128GB", preco=3899, link="https://a", plataforma="G", loja="Magalu"),
+                Produto(titulo="iPhone 15 256GB", preco=4299, link="https://b", plataforma="G", loja="Amazon")]
+    monkeypatch.setattr(monitor, "buscar_google_shopping", lambda termo: produtos)
+    bot.processar(mensagem("iphone 15"))
+    resposta = textos(tg)[-1]
+    assert "iPhone 15" in resposta and "Mais baratas encontradas" in resposta
 
 
 def test_erro_na_pesquisa_e_avisado(tg, monkeypatch):
