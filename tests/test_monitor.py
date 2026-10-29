@@ -147,8 +147,7 @@ def test_produto_com_desconto_abaixo_de_20_nao_passa_no_filtro_padrao(monkeypatc
 def test_erro_em_um_item_nao_para_os_outros(monkeypatch, isolar):
     def quebra(*a):
         raise RuntimeError("SerpApi: Invalid API key.")
-    monkeypatch.setattr(monitor, "buscar_voos", quebra)
-    monkeypatch.setattr(monitor, "buscar_anuncios", lambda b, d, s: [Anuncio(titulo="X", link="https://x")])
+    monkeypatch.setattr(monitor, "buscar_voos", quebra)    monkeypatch.setattr(monitor, "buscar_anuncios", lambda b, d, s: [Anuncio(titulo="X", link="https://x")])
     cfg = monitor.Monitoramento(voos=[{"origem": "GYN", "destino": "REC", "ida_em_dias": 5}],
                                 anuncios=[{"busca": "promo"}])
     assert monitor.executar(cfg, hoje=HOJE) == {"postados": 1, "repetidos": 0, "erros": 1}
@@ -298,7 +297,6 @@ def test_feeds_rss_e_atom_filtrando_data_e_palavras(monkeypatch):
         @classmethod
         def now(cls, tz=None):
             return datetime(2026, 10, 27, 18, 0, tzinfo=timezone.utc)
-
     monkeypatch.setattr(feeds, "datetime", Agora)
     todos = feeds.buscar_nos_feeds(["https://md/feed", "https://atom/feed"], ultimos_dias=2)
     # o post antigo e a notícia sem promoção ficam de fora
@@ -336,6 +334,7 @@ def test_anuncios_por_feed_nao_gastam_busca(monkeypatch, isolar):
 
 
 def test_monitoramento_somente_rss_nao_exige_serpapi(tmp_path, monkeypatch, caplog):
+    caplog.set_level("INFO")
     arquivo = tmp_path / "m.yml"
     arquivo.write_text(
         "anuncios:\n  - nome: Ofertas Netshoes\n"
