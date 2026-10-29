@@ -12,7 +12,7 @@ import os
 import re
 import sys
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from html import escape
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -20,14 +20,14 @@ from typing import List, Optional, Tuple
 import yaml
 from pydantic import BaseModel, Field, ValidationError, model_validator
 
-from app import historico, issues, verificar_viagem
+from app import historico, issues, relatorio, verificar_viagem
 from app.config import settings
 from app.services.anuncios import buscar_anuncios
 from app.services.feeds import buscar_nos_feeds
 from app.services.comparador import comparar_termo
 from app.services.google_shopping import buscar_google_shopping
 from app.services.lojas import buscar_na_loja, host_da_loja, tem_palavras
-from app.services.telegram import enviar_telegram
+from app.services.telegram import enviar_privado, enviar_telegram
 from app.services.viagens import buscar_hospedagens, buscar_voos
 from app.storage import ja_enviado, marcar_enviado
 
@@ -287,11 +287,18 @@ def posts_hospedagem(item: ItemHospedagem, hoje: date) -> List[Post]:
             log.info("[hospedagem] %s: já conferido hoje (1 busca por dia)", item.local)
             return []
         marcar_enviado(chave_dia)
-    opcoes = [
-        h for h in buscar_hospedagens(item.local, entrada, saida, item.adultos, item.criancas)
-        if h.nota >= item.nota_min and (item.diaria_max is None or h.diaria <= item.diaria_max)
-        and (h.oferta or not item.so_ofertas_google)
-    ]
+    encontradas = buscar_hospedagens(item.local, entrada, saida, item.adultos, item.criancas)
+    opcoes = []
+    for h in encontradas:
+        if h.nota < item.nota_min or (item.diaria_max is not None and h.diaria > item.diaria_max):
+            continue
+        aprovada = bool(h.oferta) or not item.so_ofertas_google
+        relatorio.anotar(categoria="pousada", origem=item.local, titulo=h.nome, preco=h.diaria, link=h.link,
+                         chave=f"hotel:{item.local}:{entrada}:{h.nome}:{h.diaria:.0f}",
+                         situacao="aprovado" if aprovada else "rejeitado",
+                         detalhe=f"diária · Google: {h.oferta}" if h.oferta else "diária · sem selo de abaixo do normal")
+        if aprovada:
+            opcoes.append(h)
     if not opcoes:
         log.info("[hospedagem] %s: nada dentro dos filtros", item.local)
         return []
@@ -335,16 +342,29 @@ def posts_loja(item: ItemLoja) -> List[Post]:
     ofertas = [p for p in ofertas if not (_modelo(p.titulo) in vistos or vistos.add(_modelo(p.titulo)))]
     # Preço "de" inflado é comum: só vale se o preço caiu em relação ao que o robô viu nos dias anteriores
     verificadas, sem_historico = [], 0
+    nome_loja = host_da_loja(item.site).replace("www.", "")
+    relatorio.loja(item.titulo, len(produtos), len(ofertas))
+
+    def anotar(p, situacao, detalhe):
+        relatorio.anotar(categoria="loja", origem=nome_loja, titulo=p.titulo, situacao=situacao, preco=p.preco,
+                         preco_de=p.preco_original, desconto=p.desconto, detalhe=detalhe, link=p.link,
+                         chave=f"{p.link}|{p.preco:.0f}")
     if settings.historico_min_dias:
         refs = historico.referencias(p.link for p in ofertas)
         for p in ofertas:
             mediana, dias = refs[p.link]
             if dias < settings.historico_min_dias:
                 sem_historico += 1
+                anotar(p, "aguardando", f"{dias}/{settings.historico_min_dias} dias de histórico")
             elif p.preco <= mediana * (1 - settings.queda_min / 100):
                 verificadas.append((p, (mediana, dias)))
+                anotar(p, "aprovado", f"{round((1 - p.preco / mediana) * 100)}% abaixo do normal ({_brl(mediana)})")
+            else:
+                anotar(p, "inflado", f"preço normal {_brl(mediana)} em {dias} dias: sem queda real")
     else:
         verificadas = [(p, None) for p in ofertas]
+        for p in ofertas:
+            anotar(p, "aprovado", "sem verificação de histórico")
     # o mesmo produto volta a ser postado se o preço cair de novo
     novas = [(p, v) for p, v in verificadas if not ja_enviado(f"{p.link}|{p.preco:.0f}")][:item.maximo_por_vez]
     log.info("[loja] %s: %d produto(s), %d com %d%%+ de desconto, %d com queda real de preço, "
@@ -369,6 +389,10 @@ def posts_anuncio(item: ItemAnuncio) -> List[Post]:
             if len(conferidos) >= item.maximo_por_vez:
                 break
             linha = verificar_viagem.verificar(a.link, f"{a.titulo} {a.resumo}", origem=item.origem.upper())
+            relatorio.anotar(categoria="passagem", origem=a.fonte or item.titulo, titulo=a.titulo, link=a.link,
+                             chave=a.link, situacao="aprovado" if linha else "rejeitado",
+                             detalhe=re.sub(r"<[^>]+>", "", linha).split("\n")[0] if linha
+                             else verificar_viagem.ultimo_motivo["texto"])
             if linha:
                 verificacao[a.link] = linha
                 conferidos.append(a)
@@ -499,6 +523,7 @@ def executar(cfg: Monitoramento, simular: bool = False, hoje: Optional[date] = N
     """Pesquisa tudo e posta. `limite` = máximo de posts nesta execução (o resto fica para a próxima).
     `inicio` gira a ordem dos itens, para que a cada execução outras lojas venham primeiro."""
     hoje = hoje or date.today()
+    relatorio.limpar()
     resumo = {"postados": 0, "repetidos": 0, "erros": 0}
     tarefas = (
         [(f"produto '{i.termo}'", i, lambda i=i: posts_produto(i)) for i in cfg.produtos]
@@ -536,6 +561,7 @@ def executar(cfg: Monitoramento, simular: bool = False, hoje: Optional[date] = N
         envio = enviar_telegram(post.texto, post.imagem)
         if envio["ok"]:
             marcar_enviado(post.chave)
+            relatorio.postado(post.chave)
             resumo["postados"] += 1
             log.info("✅ %s: postado no Telegram", nome)
             if item.issue:
@@ -544,6 +570,28 @@ def executar(cfg: Monitoramento, simular: bool = False, hoje: Optional[date] = N
             resumo["erros"] += 1
             log.error("❌ %s: falha ao postar no Telegram: %s", nome, envio["erro"])
     return resumo
+
+
+def publicar_relatorio(agora: Optional[datetime] = None):
+    """Página de resumo no GitHub Actions (toda execução) e, 1 vez por dia a partir das 8h ou quando
+    pedido (ENVIAR_STATUS), o resumo com exemplos só para o dono no Telegram."""
+    agora = agora or datetime.now(relatorio.BRASILIA)
+    resumo_github = os.environ.get("GITHUB_STEP_SUMMARY")
+    if resumo_github:
+        with open(resumo_github, "a", encoding="utf-8") as f:
+            f.write(relatorio.markdown(agora))
+    if not settings.telegram_dono:
+        return
+    chave = f"status:{agora.date()}"
+    pedido = os.environ.get("ENVIAR_STATUS", "").lower() in ("1", "true", "sim")
+    if not pedido and (agora.hour < 8 or ja_enviado(chave)):
+        return
+    envio = enviar_privado(settings.telegram_dono, relatorio.telegram(agora))
+    if envio["ok"]:
+        marcar_enviado(chave)
+        log.info("📊 Relatório de status enviado para você no Telegram.")
+    else:
+        log.warning("📊 Não consegui mandar o relatório de status no Telegram: %s", envio["erro"])
 
 
 def main() -> int:
@@ -583,6 +631,7 @@ def main() -> int:
 
     resumo = executar(cfg, simular, limite=int(os.environ.get("MAXIMO_POSTS") or 0) or None,
                       inicio=int(time.time() // 1800))  # muda a cada meia hora
+    publicar_relatorio()
     verbo = "seria(m) postada(s) (simulação)" if simular else "postada(s)"
     log.info("\nResumo: %d oferta(s) %s, %d repetida(s), %d erro(s).", resumo["postados"], verbo, resumo["repetidos"], resumo["erros"])
     if resumo["erros"] and not resumo["postados"]:

@@ -142,6 +142,9 @@ def comparar(voo: VooAnunciado, res) -> Optional[str]:
     return f"✅ Verificado no Google Voos ({rota}, {_brl(preco)}): " + "; ".join(partes)
 
 
+ultimo_motivo = {"texto": ""}  # por que o último post não passou (para o relatório de status)
+
+
 def verificar(link: str, texto: str, hoje: Optional[date] = None, origem: str = "") -> Optional[str]:
     """Confere o post (uma vez só) e devolve a linha de verificação, ou None se não for promoção real
     ou não der para conferir."""
@@ -150,18 +153,22 @@ def verificar(link: str, texto: str, hoje: Optional[date] = None, origem: str = 
         dados = _ler()
     chave = f"{link}|{origem}"
     if chave in dados.get("posts", {}):
+        ultimo_motivo["texto"] = "já conferido antes: não estava abaixo do normal"
         return dados["posts"][chave]
     voo = extrair(texto, hoje, origem)
     if not voo:
         log.info("[verificação] %s: o post não diz %s; não dá para conferir", link,
                  "o destino" if origem else "origem, destino e preço")
+        ultimo_motivo["texto"] = "o post não diz um destino com aeroporto conhecido"
         return None
     if not settings.serpapi_key:
         log.info("[verificação] sem SERPAPI_KEY: não dá para conferir no Google Voos")
+        ultimo_motivo["texto"] = "sem SERPAPI_KEY"
         return None
     usados = dados.get("uso", {}).get(hoje.isoformat(), 0)
     if usados >= settings.verificacoes_dia:
         log.info("[verificação] limite de %d consultas por dia atingido; o post fica para amanhã", settings.verificacoes_dia)
+        ultimo_motivo["texto"] = f"limite de {settings.verificacoes_dia} consultas por dia: fica para amanhã"
         return None
     volta = voo.ida + timedelta(days=7) if voo.ida_e_volta else None
     try:
@@ -170,6 +177,7 @@ def verificar(link: str, texto: str, hoje: Optional[date] = None, origem: str = 
     except Exception as e:
         log.warning("[verificação] %s: erro ao consultar o Google Voos (%s)", link, e)
         linha = None
+    ultimo_motivo["texto"] = f"{voo.nome_origem} → {voo.nome_destino} não está abaixo do normal no Google Voos"
     log.info("[verificação] %s → %s: %s", voo.origem, voo.destino,
              "promoção real" if linha else "não é promoção de verdade")
     with _lock:
