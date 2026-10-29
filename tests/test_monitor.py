@@ -112,7 +112,7 @@ def test_produto_usa_filtros(monkeypatch, isolar):
     monkeypatch.setattr(monitor, "buscar_google_shopping", lambda termo: produtos)
     cfg = monitor.Monitoramento(produtos=[{"termo": "air fryer", "preco_max": 600, "desconto_min": 15}])
     monitor.executar(cfg, hoje=HOJE)
-    assert "Air Fryer A" in isolar[0] and "Magalu" in isolar[0]
+    assert "Air Fryer A" in isolar[0] and "R$ 450,00" in isolar[0]
 
 
 def test_produto_mensagem_contem_apenas_os_cinco_campos(monkeypatch, isolar):
