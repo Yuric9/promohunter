@@ -45,7 +45,7 @@ class ItemProduto(Item):
     termo: str
     preco_min: float = 0
     preco_max: Optional[float] = None
-    desconto_min: int = 0
+    desconto_min: int = 20
 
 
 class ItemVoo(Item):
