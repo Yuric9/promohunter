@@ -34,6 +34,13 @@ Cada oferta de loja chega no canal assim:
 🔗 Link direto
 ```
 
+> ✈️ **Passagens saindo de Goiânia:** os blogs indicam o destino em promoção e o robô confere no
+> Google Voos o preço Goiânia → destino. Só posta se a rota estiver 10%+ abaixo do que custava há
+> 30 dias ou abaixo da faixa normal (até `VERIFICACOES_DIA`=4 consultas por dia na SerpApi).
+>
+> 🏨 **Pousadas no estado de Goiás:** 1 consulta por dia no Google Hotéis; só posta as que o
+> Google marca como "abaixo do normal".
+
 > 🛡️ **Contra preço falso:** muita loja mostra um preço "de" inflado o ano inteiro. Por isso o robô
 > anota o preço de cada produto todo dia e só posta quando o preço de hoje está pelo menos **10%
 > abaixo do preço normal** (mediana dos dias anteriores, com no mínimo 3 dias de histórico).

@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     # com pelo menos HISTORICO_MIN_DIAS dias de histórico (0 = não confere o histórico)
     historico_min_dias: int = 3
     queda_min: int = 10
+    # Passagens de blogs conferidas no Google Voos: no máximo N buscas da SerpApi por dia
+    verificacoes_dia: int = 4
 
     @property
     def telegram_destino(self) -> str:

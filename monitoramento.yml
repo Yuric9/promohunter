@@ -67,9 +67,9 @@ lojas:
   - {site: https://www.penalty.com.br, busca: tênis, excluir: [infantil, juvenil, bolinha, bola, kit], preco_max: 300, maximo_por_vez: 2}
   - {site: https://www.umbro.com.br, busca: tênis, preco_max: 300, maximo_por_vez: 2}
 
-  # 👞 Sapatos e sapatênis masculinos
-  - {site: https://www.ferracini.com.br, maximo_por_vez: 2}
-  - {site: https://www.democrata.com.br, maximo_por_vez: 2}
+  # 👞 Sapatos e sapatênis masculinos — só abaixo de R$ 300
+  - {site: https://www.ferracini.com.br, preco_max: 300, maximo_por_vez: 2}
+  - {site: https://www.democrata.com.br, preco_max: 300, maximo_por_vez: 2}
 
   # 💻 Tecnologia — só abaixo de R$ 2.500
   - {site: https://www.motorola.com.br, busca: smartphone, preco_max: 2500, maximo_por_vez: 3}
@@ -83,11 +83,15 @@ lojas:
   - {site: https://www.aiwa.com.br, preco_min: 80, preco_max: 2500, maximo_por_vez: 2}
 
 # ---------------------------------------------------------------------
-#  VIAGENS NO BRASIL (grátis) — blogs de promoção de passagens e hospedagens.
-#  Só posts que citam um destino nacional; os internacionais ficam de fora.
+#  PASSAGENS SAINDO DE GOIÂNIA — os blogs indicam o destino em promoção e o
+#  robô confere no Google Voos o preço GOIÂNIA → destino. Só posta quando a
+#  rota está 10%+ abaixo do que custava há 30 dias ou abaixo da faixa normal.
+#  Até 4 consultas por dia na SerpApi (~120/mês).
 # ---------------------------------------------------------------------
 anuncios:
-  - nome: Viagens e hospedagens no Brasil
+  - nome: Passagens saindo de Goiânia
+    verificar_voos: true
+    origem: GYN
     feeds:
       - https://www.melhoresdestinos.com.br/feed
       - https://www.passageirodeprimeira.com/feed
@@ -105,3 +109,13 @@ anuncios:
               cancún, punta cana, caribe, dubai, japão, disney]
     ultimos_dias: 1
     maximo_por_vez: 3
+
+# ---------------------------------------------------------------------
+#  HOSPEDAGENS — pousadas no estado de Goiás, consultadas 1 vez por dia no
+#  Google Hotéis (1 busca da SerpApi por dia, ~30/mês). Só posta pousadas que
+#  o Google marca como "abaixo do normal" (comparado com o preço da pousada).
+# ---------------------------------------------------------------------
+hospedagens:
+  # família: 2 adultos + 3 crianças (bebê, 5 e 12 anos; bebê conta como 1 ano para o Google)
+  - {local: pousadas no estado de Goiás, checkin_em_dias: 30, noites: 2, adultos: 2, criancas: [1, 5, 12],
+     so_ofertas_google: true, automatico: true}
