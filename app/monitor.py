@@ -25,6 +25,7 @@ from app.services.anuncios import buscar_anuncios
 from app.services.feeds import buscar_nos_feeds
 from app.services.comparador import comparar_termo
 from app.services.google_shopping import buscar_google_shopping
+from app.services.lojas import buscar_na_loja, host_da_loja
 from app.services.telegram import enviar_telegram
 from app.services.viagens import buscar_hospedagens, buscar_voos
 from app.storage import ja_enviado, marcar_enviado
@@ -111,11 +112,30 @@ class ItemAnuncio(Item):
         return self.nome or self.busca or "Promoções"
 
 
+class ItemLoja(Item):
+    site: str  # endereço da loja, ex.: https://www.mizuno.com.br
+    busca: str = ""  # opcional: só produtos com essas palavras (ex.: "tênis corrida")
+    desconto_min: int = Field(20, ge=0, le=100)
+    preco_min: float = 0
+    preco_max: Optional[float] = None
+    plataforma: Optional[str] = None  # "vtex" ou "shopify"; vazio = descobre sozinho
+    maximo_por_vez: int = Field(5, ge=1, le=20)
+
+    @property
+    def titulo(self) -> str:
+        return host_da_loja(self.site) + (f" ({self.busca})" if self.busca else "")
+
+
 class Monitoramento(BaseModel):
     produtos: List[ItemProduto] = []
     voos: List[ItemVoo] = []
     hospedagens: List[ItemHospedagem] = []
     anuncios: List[ItemAnuncio] = []
+    lojas: List[ItemLoja] = []
+
+    def so_gratis(self) -> "Monitoramento":
+        """Só o que não gasta SerpApi: lojas e feeds RSS (usado na execução automática)."""
+        return Monitoramento(lojas=self.lojas, anuncios=[a for a in self.anuncios if not a.busca])
 
     def total_buscas(self) -> int:
         """Buscas da SerpApi por execução (feeds RSS não contam)."""
@@ -159,7 +179,22 @@ def sem_acessorios(termo: str, produtos: list) -> list:
     return [p for p in produtos if not ACESSORIOS.search(p.titulo)]
 
 
-def posts_produto(item: ItemProduto) -> List[Post]:
+def formatar_oferta(p) -> str:
+    """Mensagem padrão do canal: nome, preço antigo, preço novo, desconto e link direto."""
+    titulo = p.titulo if len(p.titulo) <= 150 else p.titulo[:147] + "..."
+    preco_anterior = _brl(p.preco_original) if p.preco_original else "não informado"
+    return (
+        f"📦 <b>{escape(titulo)}</b>\n"
+        f"💰 Preço antigo: {preco_anterior}\n"
+        f"🔥 Preço novo: {_brl(p.preco)}\n"
+        f"📉 Desconto: {p.desconto}%\n"
+        f'🔗 <a href="{escape(p.link, quote=True)}">Link direto</a>'
+    )
+
+
+def posts_produto(item: ItemProduto, mais_baratas: bool = False) -> List[Post]:
+    """Melhor oferta do produto. Com `mais_baratas` (usado na conversa com o robô), lista também
+    as 3 opções mais baratas dentro dos filtros."""
     produtos = sem_acessorios(item.termo, buscar_google_shopping(item.termo))
     comp = comparar_termo(item.termo, produtos, item.desconto_min, item.preco_min, item.preco_max or float("inf"))
     if not comp:
@@ -167,16 +202,15 @@ def posts_produto(item: ItemProduto) -> List[Post]:
         detalhe = f"mais barato encontrado: {_brl(mais_barato.preco)} ({mais_barato.desconto}% off)" if mais_barato else "nenhum resultado"
         log.info("[produto] %s: nada dentro dos filtros — %s", item.termo, detalhe)
         return []
-    m = comp.melhor_oferta
-    titulo = m.titulo if len(m.titulo) <= 150 else m.titulo[:147] + "..."
-    preco_anterior = _brl(m.preco_original) if m.preco_original else "não informado"
-    texto = (
-        f"📦 <b>{escape(titulo)}</b>\n"
-        f"💰 Preço antigo: {preco_anterior}\n"
-        f"🔥 Preço novo: {_brl(m.preco)}\n"
-        f"📉 Desconto: {m.desconto}%\n"
-        f'🔗 <a href="{escape(m.link, quote=True)}">Link direto</a>'
-    )
+    texto = formatar_oferta(comp.melhor_oferta)
+    outras = sorted((p for p in comp.todas_ofertas if p.link != comp.melhor_oferta.link), key=lambda p: p.preco)[:3]
+    if mais_baratas and outras:
+        linhas = []
+        for p in outras:
+            titulo = p.titulo if len(p.titulo) <= 60 else p.titulo[:57] + "..."
+            loja = f" · {escape(p.loja)}" if p.loja else ""
+            linhas.append(f'• <b>{_brl(p.preco)}</b> — <a href="{escape(p.link, quote=True)}">{escape(titulo)}</a>{loja}')
+        texto += "\n\n💸 <b>Mais baratas encontradas:</b>\n" + "\n".join(linhas)
     return [Post(chave=comp.melhor_oferta.link, texto=texto, imagem=comp.melhor_oferta.imagem)]
 
 
@@ -256,6 +290,21 @@ def posts_hospedagem(item: ItemHospedagem, hoje: date) -> List[Post]:
     return [Post(chave=chave, texto="\n".join(linhas), imagem=melhor.imagem)]
 
 
+def posts_loja(item: ItemLoja) -> List[Post]:
+    """Ofertas lidas direto no site da loja, com desconto de pelo menos `desconto_min`%."""
+    produtos = buscar_na_loja(item.site, item.busca, item.plataforma)
+    if not item.busca:
+        produtos = sem_acessorios("", produtos)
+    ofertas = [p for p in produtos if p.desconto >= item.desconto_min
+               and item.preco_min <= p.preco <= (item.preco_max or float("inf"))]
+    ofertas.sort(key=lambda p: p.desconto, reverse=True)
+    # o mesmo produto volta a ser postado se o preço cair de novo
+    novas = [p for p in ofertas if not ja_enviado(f"{p.link}|{p.preco:.0f}")][:item.maximo_por_vez]
+    log.info("[loja] %s: %d produto(s), %d com %d%%+ de desconto, %d nova(s)",
+             item.titulo, len(produtos), len(ofertas), item.desconto_min, len(novas))
+    return [Post(chave=f"{p.link}|{p.preco:.0f}", texto=formatar_oferta(p), imagem=p.imagem) for p in novas]
+
+
 def posts_anuncio(item: ItemAnuncio) -> List[Post]:
     encontrados = buscar_nos_feeds(item.feeds, item.palavras, item.ultimos_dias, item.so_promocoes) if item.feeds else []
     if item.busca:
@@ -284,6 +333,7 @@ TIPOS = {
     "hospedagem": (ItemHospedagem, "hospedagens"),
     "produto": (ItemProduto, "produtos"),
     "anuncio": (ItemAnuncio, "anuncios"),
+    "loja": (ItemLoja, "lojas"),
 }
 
 
@@ -331,6 +381,10 @@ def descrever(tipo: str, item, hoje: date) -> str:
     if tipo == "produto":
         faixa = f"de {_brl(item.preco_min)} " if item.preco_min else ""
         return f"🛒 **{item.termo}**, {faixa}até {preco(item.preco_max)}, desconto mínimo de {item.desconto_min}%."
+    if tipo == "loja":
+        faixa = f", preço até {preco(item.preco_max)}" if item.preco_max else ""
+        return (f"🏬 **{host_da_loja(item.site)}**" + (f", produtos com “{item.busca}”" if item.busca else ", todos os produtos")
+                + f", desconto a partir de {item.desconto_min}%{faixa}.")
     return (f"📢 **{item.titulo}**: posts dos últimos {item.ultimos_dias} dias em {len(item.feeds)} blog(s)"
             + (f", com as palavras: {', '.join(item.palavras)}." if item.palavras else "."))
 
@@ -352,12 +406,14 @@ def validar_issue(numero: int, hoje: Optional[date] = None) -> int:
         return 0  # issue comum, não é formulário do PromoHunter
     cfg = carregar_tudo()
     total = cfg.total_buscas()
-    custo = "Este item **não gasta** buscas da SerpApi (lê os blogs direto)." if tipo == "anuncio" else \
-        f"Com ele, o robô faz **{total} busca(s) por dia** (~{total * 30}/mês de {BUSCAS_GRATIS_MES} grátis)."
-    if total * 30 > BUSCAS_GRATIS_MES:
-        custo += " ⚠️ **Passa do plano grátis**: feche algum formulário que você não precisa mais."
+    if tipo in ("anuncio", "loja"):
+        custo = "Este item **não gasta** buscas da SerpApi (lê direto no site)."
+        quando = "O robô confere **a cada 3 horas**"
+    else:
+        custo = f"Cada vez que você rodar o monitor, ele faz **{total} busca(s)** da SerpApi ({BUSCAS_GRATIS_MES} grátis por mês)."
+        quando = "Para economizar a SerpApi, este item **não roda sozinho**: rode em Actions → Monitorar promoções → Run workflow"
     issues.comentar(numero, "✅ **Monitoramento ativo!**\n\n" + descrever(tipo, item, hoje)
-                    + f"\n\n{custo}\n\nO robô pesquisa todo dia às 08:17 e avisa aqui e no canal quando encontrar "
+                    + f"\n\n{custo}\n\n{quando} e avisa aqui e no canal quando encontrar "
                     "uma oferta. Para **parar**, feche este issue (botão *Close issue*).")
     return 0
 
@@ -381,6 +437,7 @@ def executar(cfg: Monitoramento, simular: bool = False, hoje: Optional[date] = N
         + [(f"voo {i.origem}→{i.destino}", i, lambda i=i: posts_voo(i, hoje)) for i in cfg.voos]
         + [(f"hospedagem '{i.local}'", i, lambda i=i: posts_hospedagem(i, hoje)) for i in cfg.hospedagens]
         + [(f"anúncios '{i.titulo}'", i, lambda i=i: posts_anuncio(i)) for i in cfg.anuncios]
+        + [(f"loja {i.titulo}", i, lambda i=i: posts_loja(i)) for i in cfg.lojas]
     )
     for nome, item, tarefa in tarefas:
         try:
@@ -429,11 +486,14 @@ def main() -> int:
         log.error("O %s tem um valor inválido:\n%s", arquivo, e)
         return 1
 
+    if os.environ.get("SO_GRATIS", "").lower() in ("1", "true", "sim"):
+        cfg = cfg.so_gratis()
+        log.info("💸 Execução automática: só lojas e blogs (grátis). Passagens, hotéis e produtos do Google ficam para quando você pedir.")
     total = cfg.total_buscas()
     if total and not settings.serpapi_key:
         log.error("Falta a chave SERPAPI_KEY: este monitoramento tem %d busca(s) que dependem dela.", total)
         return 1
-    tem_itens = bool(cfg.produtos or cfg.voos or cfg.hospedagens or cfg.anuncios)
+    tem_itens = bool(cfg.produtos or cfg.voos or cfg.hospedagens or cfg.anuncios or cfg.lojas)
     if tem_itens and not simular and not (settings.telegram_bot_token and settings.telegram_chat_id):
         log.error("Faltam TELEGRAM_BOT_TOKEN e/ou TELEGRAM_CHAT_ID (no GitHub: Settings → Secrets and variables → Actions).")
         return 1

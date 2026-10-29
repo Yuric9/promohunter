@@ -1,10 +1,10 @@
 name: Monitorar promoções
 
 on:
-  # Pesquisa automática diária desligada a pedido do usuário (as buscas são feitas sob demanda).
-  # Para religar, descomente as duas linhas abaixo.
-  # schedule:
-  #   - cron: "17 11 * * *"  # todo dia às 08:17 (horário de Brasília)
+  # A cada 3 horas confere só o que é GRÁTIS (lojas e blogs). Passagens, hotéis e produtos do
+  # Google (SerpApi) só rodam quando você clica em "Run workflow".
+  schedule:
+    - cron: "17 */3 * * *"
   issues:
     types: [opened, edited, reopened]  # confere o formulário na hora e responde no issue
   workflow_dispatch:
@@ -74,6 +74,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           SIMULAR: ${{ inputs.simular }}
+          SO_GRATIS: ${{ github.event_name == 'schedule' }}
           REENVIO_HORAS: "168"  # a mesma oferta só volta a ser postada depois de 7 dias
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -147,7 +147,8 @@ def test_produto_com_desconto_abaixo_de_20_nao_passa_no_filtro_padrao(monkeypatc
 def test_erro_em_um_item_nao_para_os_outros(monkeypatch, isolar):
     def quebra(*a):
         raise RuntimeError("SerpApi: Invalid API key.")
-    monkeypatch.setattr(monitor, "buscar_voos", quebra)    monkeypatch.setattr(monitor, "buscar_anuncios", lambda b, d, s: [Anuncio(titulo="X", link="https://x")])
+    monkeypatch.setattr(monitor, "buscar_voos", quebra)
+    monkeypatch.setattr(monitor, "buscar_anuncios", lambda b, d, s: [Anuncio(titulo="X", link="https://x")])
     cfg = monitor.Monitoramento(voos=[{"origem": "GYN", "destino": "REC", "ida_em_dias": 5}],
                                 anuncios=[{"busca": "promo"}])
     assert monitor.executar(cfg, hoje=HOJE) == {"postados": 1, "repetidos": 0, "erros": 1}
