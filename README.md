@@ -41,6 +41,12 @@ Cada oferta de loja chega no canal assim:
 > 🏨 **Pousadas no estado de Goiás:** 1 consulta por dia no Google Hotéis; só posta as que o
 > Google marca como "abaixo do normal".
 
+> ⭐ **Lista de desejos pelo Telegram:** no privado com o robô, mande
+> `/quero tênis asics novablast até 400` (ou `... sem infantil`), `/lista` e `/remover 15`.
+> Cada desejo vira um formulário ⭐ na aba Issues; a cada 30 minutos o robô procura o produto em
+> todas as lojas da lista e, quando chegar no preço, avisa você no privado e posta no canal.
+> Os comandos precisam do robô de conversa na Vercel com `GITHUB_TOKEN` e `GITHUB_REPOSITORY`.
+
 > 🛡️ **Contra preço falso:** muita loja mostra um preço "de" inflado o ano inteiro. Por isso o robô
 > anota o preço de cada produto todo dia e só posta quando o preço de hoje está pelo menos **10%
 > abaixo do preço normal** (mediana dos dias anteriores, com no mínimo 3 dias de histórico).
@@ -64,6 +70,7 @@ Aba **Issues → New issue** e escolha um formulário:
 | Formulário | O que preencher |
 |---|---|
 | 🏬 Monitorar loja (grátis) | Site da loja, palavras (opcional), desconto mínimo, preço máximo |
+| ⭐ Lista de desejos (grátis) | Produto e preço máximo: avisa no privado e posta no canal quando chegar no preço |
 | ✈️ Monitorar passagem aérea | Origem, destino, datas, adultos, preço máximo |
 | 🏨 Monitorar hotel ou pousada | Local, datas, noites, diária máxima, nota mínima |
 | 🛒 Monitorar produto | Nome do produto, preço máximo, desconto mínimo |
