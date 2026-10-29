@@ -41,6 +41,12 @@ class Settings(BaseSettings):
         return valor
 
     @property
+    def dono_chat_id(self) -> str:
+        """TELEGRAM_DONO aceita só o número; tira espaços, quebras de linha, 'Id:' ou '@' colados por engano."""
+        import re as _re
+        return "".join(_re.findall(r"-?\d+", self.telegram_dono))[:20]
+
+    @property
     def cors_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 

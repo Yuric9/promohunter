@@ -55,6 +55,21 @@ def main() -> int:
     else:
         print(f"❌ O Telegram não encontrou esse chat ({info.get('description')}).")
 
+    # Relatório no privado (TELEGRAM_DONO): sem mostrar o número no log público
+    dono = settings.dono_chat_id
+    if not settings.telegram_dono:
+        print("\nTELEGRAM_DONO: não cadastrado (o relatório de status no privado fica desligado).")
+    else:
+        bruto = settings.telegram_dono
+        print(f"\nTELEGRAM_DONO cadastrado: {len(dono)} dígitos"
+              + (" ⚠️ tinha outros caracteres além dos números (foram ignorados)" if bruto.strip() != dono else ""))
+        r = chamar("getChat", chat_id=dono) if dono else {"ok": False, "description": "sem números"}
+        if r.get("ok"):
+            print(f"✅ O Telegram encontrou a conversa com {r['result'].get('first_name', '')}: o relatório pode ser enviado.")
+        else:
+            print(f"❌ O Telegram não encontrou a conversa ({r.get('description')}). Confira se o número é o do "
+                  f"@userinfobot e se você tocou em Iniciar no robô @{eu['result']['username']}.")
+
     print("\nCanais/grupos onde o robô apareceu recentemente:")
     vistos = {}
     for u in chamar("getUpdates", allowed_updates='["channel_post","message","my_chat_member"]').get("result", []):
