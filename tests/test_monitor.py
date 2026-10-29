@@ -319,3 +319,31 @@ def test_anuncios_por_feed_nao_gastam_busca(monkeypatch, isolar):
     assert "Passagens em promoção" in isolar[0] and "Recife por R$ 389" in isolar[0]
     with pytest.raises(ValueError):
         monitor.ItemAnuncio(nome="sem fonte")
+
+
+def test_monitoramento_somente_rss_nao_exige_serpapi(tmp_path, monkeypatch, caplog):
+    arquivo = tmp_path / "m.yml"
+    arquivo.write_text(
+        "anuncios:\\n  - nome: Ofertas Netshoes\\n"
+        "    feeds: [https://exemplo.test/feed.xml]\\n"
+        "    palavras: [netshoes]\\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("MONITORAMENTO", str(arquivo))
+    monkeypatch.setattr(settings, "serpapi_key", "")
+    monkeypatch.setattr(settings, "telegram_bot_token", "token-teste")
+    monkeypatch.setattr(settings, "telegram_chat_id", "@canal-teste")
+    monkeypatch.setattr(monitor, "executar", lambda cfg, simular: {"postados": 0, "repetidos": 0, "erros": 0})
+    assert monitor.main() == 0
+    assert "0 busca(s) da SerpApi" in caplog.text
+
+
+def test_monitoramento_com_busca_paga_sem_serpapi_falha(tmp_path, monkeypatch, caplog):
+    arquivo = tmp_path / "m.yml"
+    arquivo.write_text("produtos:\\n  - termo: tênis\\n", encoding="utf-8")
+    monkeypatch.setenv("MONITORAMENTO", str(arquivo))
+    monkeypatch.setattr(settings, "serpapi_key", "")
+    monkeypatch.setattr(settings, "telegram_bot_token", "token-teste")
+    monkeypatch.setattr(settings, "telegram_chat_id", "@canal-teste")
+    assert monitor.main() == 1
+    assert "dependem dela" in caplog.text
