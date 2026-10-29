@@ -26,6 +26,7 @@ from app.services.anuncios import buscar_anuncios
 from app.services.feeds import buscar_nos_feeds
 from app.services.comparador import comparar_termo
 from app.services.google_shopping import buscar_google_shopping
+from app.services import mercadolivre
 from app.services.lojas import buscar_na_loja, host_da_loja, tem_palavras
 from app.services.telegram import enviar_telegram
 from app.services.viagens import buscar_hospedagens, buscar_voos
@@ -322,6 +323,9 @@ def _modelo(titulo: str) -> str:
 
 def posts_loja(item: ItemLoja) -> List[Post]:
     """Ofertas lidas direto no site da loja, com desconto de pelo menos `desconto_min`%."""
+    if "mercadolivre" in host_da_loja(item.site) and not mercadolivre.configurado():
+        log.info("[loja] %s: falta ML_CLIENT_ID e ML_CLIENT_SECRET (aplicativo do Mercado Livre); pulando", item.titulo)
+        return []
     produtos = buscar_na_loja(item.site, item.busca, item.plataforma)
     historico.registrar(produtos)
     if not item.busca:

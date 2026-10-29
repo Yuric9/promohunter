@@ -11,6 +11,7 @@ from fastapi.responses import FileResponse
 from app.auth import exigir_api_key
 from app.config import settings
 from app.models import SearchConfig
+from app.services import mercadolivre
 from app.services.busca import buscar_todas
 from app.services.comparador import comparar_termo, rankear_melhores
 from app.services.telegram import enviar_telegram, formatar_mensagem
@@ -53,7 +54,7 @@ def integracoes():
     return {
         "google_shopping": bool(settings.serpapi_key),
         "shopee_afiliados": bool(settings.shopee_app_id and settings.shopee_secret),
-        "mercado_livre": bool(settings.ml_access_token),
+        "mercado_livre": mercadolivre.configurado(),
         "telegram": bool(settings.telegram_bot_token and settings.telegram_chat_id),
     }
 

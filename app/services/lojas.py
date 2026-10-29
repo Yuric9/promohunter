@@ -149,6 +149,13 @@ def buscar_na_loja(site: str, busca: str = "", plataforma: Optional[str] = None)
     """Lê as ofertas da loja. Sem `plataforma`, tenta VTEX e depois Shopify.
     Com `busca`, só ficam os produtos que têm essas palavras no nome."""
     host = host_da_loja(site)
+    if plataforma == "mercadolivre" or "mercadolivre" in host or "mercadolibre" in host:
+        from app.services.mercadolivre import buscar_mercadolivre
+        if not busca:
+            raise LojaNaoSuportada("no Mercado Livre informe 'busca' (ex.: tênis masculino)")
+        produtos = [p for p in buscar_mercadolivre(busca) if tem_palavras(p.titulo, busca)]
+        log.info("[loja] Mercado Livre (%s): %d produto(s) lidos", busca, len(produtos))
+        return produtos
     erros = []
     for nome in [plataforma] if plataforma else PLATAFORMAS:
         try:
