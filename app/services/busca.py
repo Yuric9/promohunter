@@ -6,7 +6,6 @@ import requests
 from app.config import settings
 from app.models import ResultadoBusca
 from app.services.google_shopping import buscar_google_shopping
-from app.services import mercadolivre
 from app.services.mercadolivre import buscar_mercadolivre
 from app.services.shopee import buscar_shopee
 
@@ -23,7 +22,7 @@ def fontes_ativas() -> dict:
         fontes["Google Shopping"] = buscar_google_shopping
     if settings.shopee_app_id and settings.shopee_secret:
         fontes["Shopee"] = buscar_shopee
-    if mercadolivre.configurado():
+    if settings.ml_access_token:
         fontes["Mercado Livre"] = buscar_mercadolivre
     return fontes
 

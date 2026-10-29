@@ -12,10 +12,6 @@ class Settings(BaseSettings):
 
     ml_country: str = "MLB"
     ml_access_token: str = ""
-    # Aplicativo grátis do portal de desenvolvedores do Mercado Livre (não é afiliado):
-    # com eles o robô pega sozinho uma chave de acesso nova a cada execução
-    ml_client_id: str = ""
-    ml_client_secret: str = ""
 
     shopee_app_id: str = ""
     shopee_secret: str = ""

@@ -49,9 +49,7 @@
 # =====================================================================
 
 # ---------------------------------------------------------------------
-#  LOJAS (grátis) — testadas: usam VTEX ou Shopify.
-#  Mercado Livre: o código está pronto (site: https://www.mercadolivre.com.br + busca),
-#  mas a API bloqueia aplicativos novos não certificados (403). Fica de fora por enquanto.
+#  LOJAS (grátis) — testadas: todas usam VTEX ou Shopify.
 #  Só posta com 20%+ de desconto E quando o preço caiu de verdade em
 #  relação ao que o robô viu nos dias anteriores (contra preço "de" inflado).
 # ---------------------------------------------------------------------
