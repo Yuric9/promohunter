@@ -32,6 +32,12 @@ if __name__ == "__main__":
                 requests.get(f"{API}/products/{prod}/items", headers=h, timeout=20))
     r = requests.get(f"{API}/highlights/MLB/category/MLB1055", headers=h, timeout=20)
     mostrar("mais vendidos (celulares): /highlights/MLB/category/MLB1055", r)
+    destaque = next((c["id"] for c in (r.json().get("content") or []) if c.get("type") == "PRODUCT"), None) if r.ok else None
+    if destaque:
+        mostrar(f"produto em destaque: /products/{destaque}",
+                requests.get(f"{API}/products/{destaque}", headers=h, timeout=20))
+        mostrar(f"anúncios do produto em destaque: /products/{destaque}/items",
+                requests.get(f"{API}/products/{destaque}/items", headers=h, timeout=20))
     mostrar("busca por categoria: /sites/MLB/search?category=MLB1055",
             requests.get(f"{API}/sites/MLB/search", params={"category": "MLB1055"}, headers=h, timeout=20))
     mostrar("promoções do dia: /sites/MLB/search?promotion_type=deal_of_the_day",
