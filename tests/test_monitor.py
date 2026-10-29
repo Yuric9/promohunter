@@ -324,9 +324,9 @@ def test_anuncios_por_feed_nao_gastam_busca(monkeypatch, isolar):
 def test_monitoramento_somente_rss_nao_exige_serpapi(tmp_path, monkeypatch, caplog):
     arquivo = tmp_path / "m.yml"
     arquivo.write_text(
-        "anuncios:\\n  - nome: Ofertas Netshoes\\n"
-        "    feeds: [https://exemplo.test/feed.xml]\\n"
-        "    palavras: [netshoes]\\n",
+        "anuncios:\n  - nome: Ofertas Netshoes\n"
+        "    feeds: [https://exemplo.test/feed.xml]\n"
+        "    palavras: [netshoes]\n",
         encoding="utf-8",
     )
     monkeypatch.setenv("MONITORAMENTO", str(arquivo))
@@ -340,7 +340,7 @@ def test_monitoramento_somente_rss_nao_exige_serpapi(tmp_path, monkeypatch, capl
 
 def test_monitoramento_com_busca_paga_sem_serpapi_falha(tmp_path, monkeypatch, caplog):
     arquivo = tmp_path / "m.yml"
-    arquivo.write_text("produtos:\\n  - termo: tênis\\n", encoding="utf-8")
+    arquivo.write_text("produtos:\n  - termo: tênis\n", encoding="utf-8")
     monkeypatch.setenv("MONITORAMENTO", str(arquivo))
     monkeypatch.setattr(settings, "serpapi_key", "")
     monkeypatch.setattr(settings, "telegram_bot_token", "token-teste")
