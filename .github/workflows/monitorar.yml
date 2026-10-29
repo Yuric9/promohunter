@@ -19,6 +19,10 @@ on:
         description: "Só lojas e blogs (grátis, não gasta SerpApi) — usado pelo agendamento externo"
         type: boolean
         default: false
+      enviar_status:
+        description: "Mandar agora o relatório de status para você no Telegram (precisa do secret TELEGRAM_DONO)"
+        type: boolean
+        default: false
       diagnosticar_telegram:
         description: "Só diagnosticar o Telegram (mostra o endereço certo do canal, não pesquisa nada)"
         type: boolean
@@ -79,6 +83,8 @@ jobs:
           SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_DONO: ${{ secrets.TELEGRAM_DONO }}
+          ENVIAR_STATUS: ${{ inputs.enviar_status }}
           SIMULAR: ${{ inputs.simular }}
           SO_GRATIS: ${{ github.event_name == 'schedule' || inputs.so_gratis }}
           MAXIMO_POSTS: "15"  # no máximo 15 ofertas por execução, para não inundar o canal

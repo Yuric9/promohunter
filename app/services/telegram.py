@@ -73,3 +73,15 @@ def enviar_telegram(texto: str, imagem: str = "") -> dict:
         return {"ok": True}
     except Exception as e:
         return {"ok": False, "erro": str(e)}
+
+
+def enviar_privado(chat_id: str, texto: str) -> dict:
+    """Mensagem direta para uma pessoa (ex.: relatório de status para o dono), fora do canal."""
+    if not (settings.telegram_bot_token and chat_id):
+        return {"ok": False, "erro": "falta TELEGRAM_BOT_TOKEN ou o número do destinatário"}
+    try:
+        _chamar("sendMessage", {"chat_id": chat_id, "text": texto, "parse_mode": "HTML",
+                                "disable_web_page_preview": True})
+        return {"ok": True}
+    except Exception as e:
+        return {"ok": False, "erro": str(e)}
