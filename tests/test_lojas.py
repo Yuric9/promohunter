@@ -110,7 +110,8 @@ def test_loja_exclui_palavras_e_nao_repete_o_mesmo_produto_em_outra_cor(monkeypa
     def produto(nome, cor):
         return {"productName": nome, "link": f"https://loja/{nome}-{cor}/p".replace(" ", "-"),
                 "items": [{"images": [], "sellers": [{"commertialOffer": {"Price": 50, "ListPrice": 100, "AvailableQuantity": 1}}]}]}
-    dados = [produto("Camiseta Básica", "azul"), produto("Camiseta Básica", "preta"), produto("Body Bebê Reserva Mini", "x")]
+    dados = [produto("Camiseta Básica - Azul", "azul"), produto("Camiseta Básica - Preta", "preta"),
+             produto("Body Bebê Reserva Mini", "x")]
     falsa_internet(monkeypatch, {"/api/catalog_system/": Resposta(200, dados)})
     cfg = monitor.Monitoramento(lojas=[{"site": "usereserva.com", "excluir": ["bebê", "infantil"]}])
     assert monitor.executar(cfg)["postados"] == 1

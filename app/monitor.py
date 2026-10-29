@@ -291,6 +291,10 @@ def posts_hospedagem(item: ItemHospedagem, hoje: date) -> List[Post]:
     return [Post(chave=chave, texto="\n".join(linhas), imagem=melhor.imagem)]
 
 
+def _modelo(titulo: str) -> str:
+    return titulo.rsplit(" - ", 1)[0].strip().lower()
+
+
 def posts_loja(item: ItemLoja) -> List[Post]:
     """Ofertas lidas direto no site da loja, com desconto de pelo menos `desconto_min`%."""
     produtos = buscar_na_loja(item.site, item.busca, item.plataforma)
@@ -300,9 +304,9 @@ def posts_loja(item: ItemLoja) -> List[Post]:
                and item.preco_min <= p.preco <= (item.preco_max or float("inf"))
                and not any(tem_palavras(p.titulo, palavra) for palavra in item.excluir)]
     ofertas.sort(key=lambda p: p.desconto, reverse=True)
-    # o mesmo produto em outra cor/tamanho conta uma vez só
+    # o mesmo produto em outra cor/tamanho ("Camiseta X - Azul", "Camiseta X - Preta") conta uma vez só
     vistos = set()
-    ofertas = [p for p in ofertas if not (p.titulo.lower() in vistos or vistos.add(p.titulo.lower()))]
+    ofertas = [p for p in ofertas if not (_modelo(p.titulo) in vistos or vistos.add(_modelo(p.titulo)))]
     # o mesmo produto volta a ser postado se o preço cair de novo
     novas = [p for p in ofertas if not ja_enviado(f"{p.link}|{p.preco:.0f}")][:item.maximo_por_vez]
     log.info("[loja] %s: %d produto(s), %d com %d%%+ de desconto, %d nova(s)",
