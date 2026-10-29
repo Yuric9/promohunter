@@ -24,6 +24,10 @@ class Settings(BaseSettings):
 
     data_dir: Path = Path("data")
     reenvio_horas: int = 24
+    # Promoção real: preço de hoje pelo menos QUEDA_MIN% abaixo da mediana que o robô viu antes,
+    # com pelo menos HISTORICO_MIN_DIAS dias de histórico (0 = não confere o histórico)
+    historico_min_dias: int = 3
+    queda_min: int = 10
 
     @property
     def telegram_destino(self) -> str:

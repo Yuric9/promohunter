@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 import pytest
 
 from app import issues, monitor
@@ -36,6 +38,7 @@ class Resposta:
 @pytest.fixture(autouse=True)
 def isolar(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "data_dir", tmp_path)
+    monkeypatch.setattr(settings, "historico_min_dias", 0)  # nos testes antigos não confere o histórico
     postados = []
     monkeypatch.setattr(monitor, "enviar_telegram", lambda texto, imagem="": postados.append(texto) or {"ok": True})
     return postados
@@ -165,3 +168,42 @@ def test_inicio_gira_a_ordem_das_lojas(monkeypatch, isolar):
     cfg = monitor.Monitoramento(lojas=[{"site": "tenis"}, {"site": "roupa"}, {"site": "tech"}])
     monitor.executar(cfg, limite=1, inicio=2)
     assert "tech 0" in isolar[0]
+
+
+def produto_de(preco, link="https://loja/tenis/p"):
+    return lojas.Produto(titulo="Tênis X Masculino", preco=preco, preco_original=899, desconto=round((1 - preco / 899) * 100),
+                         link=link, plataforma="VTEX")
+
+
+def test_preco_de_inflado_nao_passa_e_queda_real_passa(monkeypatch, isolar):
+    from app import historico
+    monkeypatch.setattr(settings, "historico_min_dias", 3)
+    hoje = date.today()
+    # o robô viu o tênis por R$ 329 ("de R$ 899") nos últimos 5 dias: o "desconto de 63%" é falso
+    for d in range(1, 6):
+        historico.registrar([produto_de(329)], hoje - timedelta(days=d))
+    preco = {"valor": 329}
+    monkeypatch.setattr(monitor, "buscar_na_loja", lambda site, busca, plataforma: [produto_de(preco["valor"])])
+    cfg = monitor.Monitoramento(lojas=[{"site": "loja"}])
+    assert monitor.executar(cfg)["postados"] == 0
+    # hoje caiu para R$ 279 (15% abaixo do normal): promoção de verdade
+    preco["valor"] = 279
+    assert monitor.executar(cfg)["postados"] == 1
+    assert "Promoção verificada: 15% abaixo do preço normal (R$ 329,00 nos últimos 5 dias)" in isolar[0]
+
+
+def test_produto_sem_historico_suficiente_espera(monkeypatch, isolar):
+    from app import historico
+    monkeypatch.setattr(settings, "historico_min_dias", 3)
+    historico.registrar([produto_de(500)], date.today() - timedelta(days=1))
+    monkeypatch.setattr(monitor, "buscar_na_loja", lambda site, busca, plataforma: [produto_de(300)])
+    assert monitor.executar(monitor.Monitoramento(lojas=[{"site": "loja"}]))["postados"] == 0
+
+
+def test_historico_guarda_o_menor_preco_do_dia_e_esquece_o_antigo():
+    from app import historico
+    hoje = date.today()
+    historico.registrar([produto_de(400)], hoje - timedelta(days=60))
+    historico.registrar([produto_de(400)], hoje - timedelta(days=1))
+    historico.registrar([produto_de(380)], hoje - timedelta(days=1))
+    assert historico.referencias(["https://loja/tenis/p"], hoje)["https://loja/tenis/p"] == (380, 1)

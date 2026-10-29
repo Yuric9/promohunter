@@ -104,7 +104,15 @@ def buscar_vtex(host: str, busca: str = "", quantidade: int = 50) -> List[Produt
     dados = dados or _get(url)
     if not isinstance(dados, list):
         raise LojaNaoSuportada("resposta não é da VTEX")
-    return produtos_vtex(dados, host)
+    produtos = produtos_vtex(dados, host)
+    # Os mais vendidos também: o histórico precisa ver o preço dos produtos ANTES de entrarem em promoção
+    try:
+        extras = _get(url + "&O=OrderByTopSaleDESC")
+        vistos = {p.link for p in produtos}
+        produtos += [p for p in produtos_vtex(extras if isinstance(extras, list) else [], host) if p.link not in vistos]
+    except (LojaNaoSuportada, ValueError, requests.RequestException):
+        pass
+    return produtos
 
 
 # ---- Shopify -------------------------------------------------------------------------

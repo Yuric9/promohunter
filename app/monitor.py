@@ -15,12 +15,12 @@ import time
 from datetime import date, timedelta
 from html import escape
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import yaml
 from pydantic import BaseModel, Field, ValidationError, model_validator
 
-from app import issues
+from app import historico, issues
 from app.config import settings
 from app.services.anuncios import buscar_anuncios
 from app.services.feeds import buscar_nos_feeds
@@ -96,6 +96,7 @@ class ItemAnuncio(Item):
     nome: str = ""
     feeds: List[str] = []  # feeds RSS de blogs de promoção (grátis, não gasta busca)
     palavras: List[str] = []  # só posts que mencionam alguma dessas palavras
+    excluir: List[str] = []  # descarta posts que mencionam alguma dessas (ex.: destinos internacionais)
     so_promocoes: bool = True  # descarta notícias sem preço/desconto/cupom
     busca: str = ""  # ou: busca no Google (gasta 1 busca)
     sites: List[str] = []
@@ -181,16 +182,23 @@ def sem_acessorios(termo: str, produtos: list) -> list:
     return [p for p in produtos if not ACESSORIOS.search(p.titulo)]
 
 
-def formatar_oferta(p) -> str:
-    """Mensagem padrão do canal: nome, preço antigo, preço novo, desconto e link direto."""
+def formatar_oferta(p, verificado: Optional[Tuple[float, int]] = None) -> str:
+    """Mensagem padrão do canal: nome, preço antigo, preço novo, desconto e link direto.
+    Com `verificado` (mediana, dias), mostra também a comparação com o histórico de preços."""
     titulo = p.titulo if len(p.titulo) <= 150 else p.titulo[:147] + "..."
     preco_anterior = _brl(p.preco_original) if p.preco_original else "não informado"
+    historico_txt = ""
+    if verificado:
+        mediana, dias = verificado
+        historico_txt = (f"✅ Promoção verificada: {round((1 - p.preco / mediana) * 100)}% abaixo do preço "
+                         f"normal ({_brl(mediana)} nos últimos {dias} dias)\n")
     return (
         f"📦 <b>{escape(titulo)}</b>\n"
         f"💰 Preço antigo: {preco_anterior}\n"
         f"🔥 Preço novo: {_brl(p.preco)}\n"
         f"📉 Desconto: {p.desconto}%\n"
-        f'🔗 <a href="{escape(p.link, quote=True)}">Link direto</a>'
+        + historico_txt
+        + f'🔗 <a href="{escape(p.link, quote=True)}">Link direto</a>'
     )
 
 
@@ -299,6 +307,7 @@ def _modelo(titulo: str) -> str:
 def posts_loja(item: ItemLoja) -> List[Post]:
     """Ofertas lidas direto no site da loja, com desconto de pelo menos `desconto_min`%."""
     produtos = buscar_na_loja(item.site, item.busca, item.plataforma)
+    historico.registrar(produtos)
     if not item.busca:
         produtos = sem_acessorios("", produtos)
     ofertas = [p for p in produtos if p.desconto >= item.desconto_min
@@ -308,17 +317,33 @@ def posts_loja(item: ItemLoja) -> List[Post]:
     # o mesmo produto em outra cor/tamanho ("Camiseta X - Azul", "Camiseta X - Preta") conta uma vez só
     vistos = set()
     ofertas = [p for p in ofertas if not (_modelo(p.titulo) in vistos or vistos.add(_modelo(p.titulo)))]
+    # Preço "de" inflado é comum: só vale se o preço caiu em relação ao que o robô viu nos dias anteriores
+    verificadas, sem_historico = [], 0
+    if settings.historico_min_dias:
+        refs = historico.referencias(p.link for p in ofertas)
+        for p in ofertas:
+            mediana, dias = refs[p.link]
+            if dias < settings.historico_min_dias:
+                sem_historico += 1
+            elif p.preco <= mediana * (1 - settings.queda_min / 100):
+                verificadas.append((p, (mediana, dias)))
+    else:
+        verificadas = [(p, None) for p in ofertas]
     # o mesmo produto volta a ser postado se o preço cair de novo
-    novas = [p for p in ofertas if not ja_enviado(f"{p.link}|{p.preco:.0f}")][:item.maximo_por_vez]
-    log.info("[loja] %s: %d produto(s), %d com %d%%+ de desconto, %d nova(s)",
-             item.titulo, len(produtos), len(ofertas), item.desconto_min, len(novas))
-    return [Post(chave=f"{p.link}|{p.preco:.0f}", texto=formatar_oferta(p), imagem=p.imagem) for p in novas]
+    novas = [(p, v) for p, v in verificadas if not ja_enviado(f"{p.link}|{p.preco:.0f}")][:item.maximo_por_vez]
+    log.info("[loja] %s: %d produto(s), %d com %d%%+ de desconto, %d com queda real de preço, "
+             "%d ainda sem histórico, %d nova(s)", item.titulo, len(produtos), len(ofertas), item.desconto_min,
+             len(verificadas), sem_historico, len(novas))
+    return [Post(chave=f"{p.link}|{p.preco:.0f}", texto=formatar_oferta(p, v), imagem=p.imagem) for p, v in novas]
 
 
 def posts_anuncio(item: ItemAnuncio) -> List[Post]:
     encontrados = buscar_nos_feeds(item.feeds, item.palavras, item.ultimos_dias, item.so_promocoes) if item.feeds else []
     if item.busca:
         encontrados += buscar_anuncios(item.busca, item.ultimos_dias, item.sites or None)
+    if item.excluir:
+        fora = [p.lower() for p in item.excluir]
+        encontrados = [a for a in encontrados if not any(p in f"{a.titulo} {a.resumo}".lower() for p in fora)]
     novos = [a for a in encontrados if not ja_enviado(a.link)][:item.maximo_por_vez]
     if not novos:
         log.info("[anúncios] %s: nenhum anúncio novo (%d encontrados)", item.titulo, len(encontrados))
