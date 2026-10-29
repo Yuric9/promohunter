@@ -145,3 +145,13 @@ def test_limite_de_posts_por_execucao(monkeypatch, isolar):
     assert monitor.executar(cfg, limite=1)["postados"] == 1
     assert monitor.executar(cfg, limite=1)["postados"] == 1  # a oferta que ficou de fora sai na próxima
     assert len(isolar) == 2 and "Bermuda" in isolar[1]
+
+
+def test_posts_sao_intercalados_entre_as_lojas(monkeypatch, isolar):
+    def produtos(prefixo):
+        return [lojas.Produto(titulo=f"{prefixo} {n}", preco=50, preco_original=100, desconto=50,
+                              link=f"https://{prefixo}/{n}", plataforma="VTEX") for n in range(3)]
+    monkeypatch.setattr(monitor, "buscar_na_loja", lambda site, busca, plataforma: produtos(site))
+    cfg = monitor.Monitoramento(lojas=[{"site": "tenis"}, {"site": "roupa"}, {"site": "tech"}])
+    assert monitor.executar(cfg, limite=4)["postados"] == 4
+    assert [t.split("<b>")[1].split("</b>")[0] for t in isolar] == ["tenis 0", "roupa 0", "tech 0", "tenis 1"]

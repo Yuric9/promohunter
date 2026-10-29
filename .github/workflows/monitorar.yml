@@ -3,6 +3,8 @@ name: Monitorar promoções
 on:
   # A cada 30 minutos confere só o que é GRÁTIS (lojas e blogs). Passagens, hotéis e produtos do
   # Google (SerpApi) só rodam quando você clica em "Run workflow".
+  # O agendamento do GitHub às vezes atrasa ou pula horários; para garantir os 30 minutos, um
+  # serviço externo (cron-job.org) também pode chamar este workflow com "so_gratis" ligado.
   schedule:
     - cron: "17,47 * * * *"
   issues:
@@ -11,6 +13,10 @@ on:
     inputs:
       simular:
         description: "Só simular (mostra as mensagens no log, sem postar no Telegram)"
+        type: boolean
+        default: false
+      so_gratis:
+        description: "Só lojas e blogs (grátis, não gasta SerpApi) — usado pelo agendamento externo"
         type: boolean
         default: false
       diagnosticar_telegram:
@@ -74,7 +80,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           SIMULAR: ${{ inputs.simular }}
-          SO_GRATIS: ${{ github.event_name == 'schedule' }}
+          SO_GRATIS: ${{ github.event_name == 'schedule' || inputs.so_gratis }}
           MAXIMO_POSTS: "15"  # no máximo 15 ofertas por execução, para não inundar o canal
           REENVIO_HORAS: "168"  # a mesma oferta só volta a ser postada depois de 7 dias
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
