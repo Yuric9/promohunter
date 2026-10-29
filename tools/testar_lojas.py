@@ -117,22 +117,24 @@ def testar_feed(url):
 
 
 def testar_ofertas():
+    """Mostra o que seria postado agora (mesma lógica do monitor, nada é enviado)."""
     import logging
     import os
+    import tempfile
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from app import monitor
-    from app.services.lojas import buscar_na_loja
+    from app.config import settings
+    settings.data_dir = __import__("pathlib").Path(tempfile.mkdtemp())  # ignora o histórico de enviados
     logging.basicConfig(level=logging.WARNING)
     for item in monitor.carregar().lojas:
         try:
-            produtos = buscar_na_loja(item.site, item.busca, item.plataforma)
+            posts = monitor.posts_loja(item)
         except Exception as e:
             print(f"❌ {item.titulo}: {e}")
             continue
-        ofertas = sorted((p for p in produtos if p.desconto >= item.desconto_min), key=lambda p: -p.desconto)
-        print(f"\n🏬 {item.titulo}: {len(produtos)} produtos, {len(ofertas)} com {item.desconto_min}%+")
-        for p in ofertas[:3]:
-            print(f"   {p.desconto}% | de {p.preco_original} por {p.preco} | {p.titulo[:60]} | {p.link}")
+        print(f"\n🏬 {item.titulo}: {len(posts)} oferta(s) para postar")
+        for post in posts:
+            print("   " + " | ".join(linha for linha in post.texto.splitlines()[:4]))
 
 
 if __name__ == "__main__":
