@@ -1,0 +1,21 @@
+name: Testar lojas
+
+# Descobre quais sites podem ser lidos de graça (VTEX, Shopify ou feed RSS).
+on:
+  workflow_dispatch:
+  push:
+    paths: [tools/testar_lojas.py, .github/workflows/testar-lojas.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  testar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - run: python tools/testar_lojas.py
