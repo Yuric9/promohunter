@@ -4,7 +4,7 @@ name: Testar lojas
 on:
   workflow_dispatch:
   push:
-    paths: [tools/testar_lojas.py, .github/workflows/testar-lojas.yml, monitoramento.yml, app/services/lojas.py]
+    paths: [tools/testar_lojas.py, tools/testar_ml.py, .github/workflows/testar-lojas.yml, monitoramento.yml, app/services/lojas.py]
 
 permissions:
   contents: read
@@ -18,6 +18,10 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
+      - run: python tools/testar_ml.py
+        env:
+          ML_CLIENT_ID: ${{ secrets.ML_CLIENT_ID }}
+          ML_CLIENT_SECRET: ${{ secrets.ML_CLIENT_SECRET }}
       - run: python tools/testar_lojas.py ofertas
         env:
           ML_CLIENT_ID: ${{ secrets.ML_CLIENT_ID }}
