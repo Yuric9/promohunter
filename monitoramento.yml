@@ -62,6 +62,11 @@ lojas:
   - {site: https://www.underarmour.com.br, busca: tênis masculino, maximo_por_vez: 3}
   - {site: https://www.artwalk.com.br, busca: tênis masculino, maximo_por_vez: 3}
   - {site: https://www.authenticfeet.com.br, busca: tênis masculino, maximo_por_vez: 3}
+  - {site: https://www.skechers.com.br, busca: tênis masculino, maximo_por_vez: 2}
+  - {site: https://www.penalty.com.br, busca: tênis, excluir: [infantil, juvenil, bolinha, bola, kit], maximo_por_vez: 2}
+  - {site: https://www.umbro.com.br, busca: tênis, maximo_por_vez: 2}
+  - {site: https://www.ferracini.com.br, maximo_por_vez: 2}
+  - {site: https://www.democrata.com.br, maximo_por_vez: 2}
 
   # 👕 Roupas masculinas
   - {site: https://www.usereserva.com, excluir: [bebê, bb, mini, infantil, menina, menino, body, feminino, kids], maximo_por_vez: 3}
@@ -70,6 +75,17 @@ lojas:
   - {site: https://www.hering.com.br, busca: masculina, maximo_por_vez: 3}
   - {site: https://www.levi.com.br, busca: masculina, maximo_por_vez: 2}
   - {site: https://www.calvinklein.com.br, busca: masculina, excluir: [mochila, bolsa], maximo_por_vez: 3}
+  - {site: https://www.dudalina.com.br, busca: masculino, maximo_por_vez: 2}
+  - {site: https://www.individual.com.br, maximo_por_vez: 2}
+  - {site: https://www.tng.com.br, busca: masculino, maximo_por_vez: 2}
+  - {site: https://www.polowear.com.br, busca: masculino, maximo_por_vez: 2}
+  - {site: https://www.malwee.com.br, busca: masculino, maximo_por_vez: 2}
+  - {site: https://www.sergiok.com.br, excluir: [infantil, feminino, kids], maximo_por_vez: 2}
+  - {site: https://www.quiksilver.com.br, excluir: [feminino, infantil], maximo_por_vez: 2}
+  - {site: https://www.billabong.com.br, excluir: [feminino, infantil], maximo_por_vez: 2}
+  - {site: https://www.hurley.com.br, excluir: [feminino, infantil], maximo_por_vez: 2}
+  - {site: https://www.hangloose.com.br, excluir: [feminino, infantil, juvenil], maximo_por_vez: 2}
+  - {site: https://www.piticas.com.br, busca: camiseta, excluir: [infantil, feminina, baby, body], maximo_por_vez: 2}
 
   # 💻 Tecnologia
   - {site: https://www.motorola.com.br, busca: smartphone, maximo_por_vez: 3}
@@ -80,6 +96,14 @@ lojas:
   - {site: https://www.multilaser.com.br, busca: fone, excluir: [reembalado, infantil], maximo_por_vez: 2}
   - {site: https://www.philco.com.br, busca: caixa de som, maximo_por_vez: 2}
   - {site: https://www.philco.com.br, busca: smart tv, maximo_por_vez: 2}
+  - {site: https://www.vaio.com.br, busca: notebook, maximo_por_vez: 2}
+  - {site: https://www.aiwa.com.br, preco_min: 80, maximo_por_vez: 2}
+
+  # ⌚ Relógios masculinos
+  - {site: https://www.mondaine.com.br, busca: relógio masculino, maximo_por_vez: 2}
+
+  # 🧳 Malas de viagem
+  - {site: https://www.sestini.com.br, busca: mala, maximo_por_vez: 2}
 
 # ---------------------------------------------------------------------
 #  VIAGENS (grátis) — blogs de promoção de passagens e hospedagens.
