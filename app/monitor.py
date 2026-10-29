@@ -450,37 +450,39 @@ def executar(cfg: Monitoramento, simular: bool = False, hoje: Optional[date] = N
         + [(f"anúncios '{i.titulo}'", i, lambda i=i: posts_anuncio(i)) for i in cfg.anuncios]
         + [(f"loja {i.titulo}", i, lambda i=i: posts_loja(i)) for i in cfg.lojas]
     )
+    # 1) pesquisa tudo
+    resultados = []
     for nome, item, tarefa in tarefas:
-        if limite and resumo["postados"] >= limite:
-            log.info("⏸️  Limite de %d post(s) por execução atingido: o restante fica para a próxima.", limite)
-            break
         try:
-            posts = tarefa()
+            resultados.append((nome, item, tarefa()))
         except Exception as e:
             resumo["erros"] += 1
             log.error("❌ %s: %s", nome, e)
+    # 2) posta intercalando: 1 oferta de cada item por rodada, para o limite não ficar só nos primeiros da lista
+    rodadas = max((len(posts) for _, _, posts in resultados), default=0)
+    fila = [(nome, item, posts[r]) for r in range(rodadas) for nome, item, posts in resultados if r < len(posts)]
+    for nome, item, post in fila:
+        if limite and resumo["postados"] >= limite:
+            log.info("⏸️  Limite de %d post(s) por execução atingido: o restante fica para a próxima.", limite)
+            break
+        if ja_enviado(post.chave):
+            resumo["repetidos"] += 1
+            log.info("↩️  %s: oferta já postada recentemente", nome)
             continue
-        for post in posts:
-            if limite and resumo["postados"] >= limite:
-                break
-            if ja_enviado(post.chave):
-                resumo["repetidos"] += 1
-                log.info("↩️  %s: oferta já postada recentemente", nome)
-                continue
-            if simular:
-                log.info("\n----- %s (simulação, não postado) -----\n%s\n", nome, post.texto)
-                resumo["postados"] += 1
-                continue
-            envio = enviar_telegram(post.texto, post.imagem)
-            if envio["ok"]:
-                marcar_enviado(post.chave)
-                resumo["postados"] += 1
-                log.info("✅ %s: postado no Telegram", nome)
-                if item.issue:
-                    issues.comentar(item.issue, "🔔 **Nova oferta postada no canal:**\n\n" + issues.html_para_markdown(post.texto))
-            else:
-                resumo["erros"] += 1
-                log.error("❌ %s: falha ao postar no Telegram: %s", nome, envio["erro"])
+        if simular:
+            log.info("\n----- %s (simulação, não postado) -----\n%s\n", nome, post.texto)
+            resumo["postados"] += 1
+            continue
+        envio = enviar_telegram(post.texto, post.imagem)
+        if envio["ok"]:
+            marcar_enviado(post.chave)
+            resumo["postados"] += 1
+            log.info("✅ %s: postado no Telegram", nome)
+            if item.issue:
+                issues.comentar(item.issue, "🔔 **Nova oferta postada no canal:**\n\n" + issues.html_para_markdown(post.texto))
+        else:
+            resumo["erros"] += 1
+            log.error("❌ %s: falha ao postar no Telegram: %s", nome, envio["erro"])
     return resumo
 
 
