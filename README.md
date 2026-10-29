@@ -6,17 +6,32 @@ anunciadas** na internet, compara os preços, escolhe as melhores ofertas e post
 
 ## Rodando no GitHub (sem computador) ⭐
 
-O robô de monitoramento roda **sozinho no GitHub Actions, todo dia**, de graça e sem precisar
-de computador ligado. Ele pesquisa tudo que está no arquivo **`monitoramento.yml`**:
+O robô de monitoramento roda **sozinho no GitHub Actions, a cada 3 horas**, de graça e sem precisar
+de computador ligado. Ele pesquisa tudo que está no arquivo **`monitoramento.yml`** e nos formulários:
 
 | Tipo | Onde pesquisa | O que compara |
 |---|---|---|
+| `lojas` ⭐ | Direto no site da loja (VTEX ou Shopify, grátis) | Produtos com **20% ou mais** de desconto |
 | `produtos` | Google Shopping | Preço e desconto em várias lojas |
 | `voos` | Google Voos | Companhias aéreas + se o preço está abaixo do normal |
 | `hospedagens` | Google Hotéis | Hotéis e pousadas: diária, nota e promoções |
 | `anuncios` | Blogs de promoção (feed RSS, grátis) | Posts novos de promoções, filtrados por palavras |
 
 As melhores ofertas são postadas no canal do Telegram, sem repetir a mesma oferta por 7 dias.
+
+> 💸 **Grátis primeiro:** a execução automática (a cada 3 horas) só confere **lojas e blogs**, que não
+> gastam nada. Produtos do Google, passagens e hotéis usam a SerpApi e só rodam quando você pede
+> (botão *Run workflow* ou o robô de conversa no Telegram).
+
+Cada oferta de loja chega no canal assim:
+
+```
+📦 Tênis Mizuno Wave Rider 28
+💰 Preço antigo: R$ 899,99
+🔥 Preço novo: R$ 559,99
+📉 Desconto: 38%
+🔗 Link direto
+```
 
 ### 1. Cadastrar as chaves (uma vez só)
 No repositório: **Settings → Secrets and variables → Actions → New repository secret**.
@@ -35,6 +50,7 @@ Aba **Issues → New issue** e escolha um formulário:
 
 | Formulário | O que preencher |
 |---|---|
+| 🏬 Monitorar loja (grátis) | Site da loja, palavras (opcional), desconto mínimo, preço máximo |
 | ✈️ Monitorar passagem aérea | Origem, destino, datas, adultos, preço máximo |
 | 🏨 Monitorar hotel ou pousada | Local, datas, noites, diária máxima, nota mínima |
 | 🛒 Monitorar produto | Nome do produto, preço máximo, desconto mínimo |
@@ -46,13 +62,13 @@ Quando achar uma oferta, ele posta no canal **e comenta no issue**. Para parar, 
 > Só valem formulários criados por você (ou colaboradores): issues de outras pessoas são ignorados.
 > Quem prefere escrever à mão pode usar o arquivo `monitoramento.yml` (tem exemplos comentados).
 
-> Cada item gasta 1 busca por dia. O plano grátis da SerpApi tem 250 buscas/mês → até **8 itens**.
-> Os `anuncios` por feed RSS são grátis e não entram nessa conta.
+> Lojas e blogs (feeds RSS) são grátis. Produtos do Google, passagens e hotéis gastam 1 busca
+> da SerpApi cada vez que você roda (o plano grátis tem 250 buscas/mês).
 
 ### 3. Testar agora (sem esperar o horário)
 Aba **Actions → Monitorar promoções → Run workflow**. Marque **"Só simular"** para ver as
 mensagens no log sem postar, ou deixe desmarcado para postar de verdade.
-O horário automático é todo dia às 08:17 (Brasília).
+O horário automático é a cada 3 horas (só lojas e blogs).
 
 > O GitHub pausa agendamentos de repositórios sem nenhuma atividade por 60 dias. Se isso
 > acontecer, ele avisa por e-mail e basta clicar em "Enable workflow" na aba Actions.

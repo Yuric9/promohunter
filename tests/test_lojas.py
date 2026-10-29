@@ -108,3 +108,12 @@ def test_formulario_de_loja():
     item = monitor.ItemLoja(**dados)
     assert (item.site, item.busca, item.desconto_min, item.preco_max) == ("https://www.mizuno.com.br", "tênis corrida", 25, None)
     assert "www.mizuno.com.br" in monitor.descrever("loja", item, None)
+
+
+def test_limite_de_posts_por_execucao(monkeypatch, isolar):
+    falsa_internet(monkeypatch, {"/api/catalog_system/": Resposta(200, VTEX), "/products.json": Resposta(200, SHOPIFY)})
+    cfg = monitor.Monitoramento(lojas=[{"site": "mizuno.com.br", "plataforma": "vtex"},
+                                       {"site": "insiderstore.com.br", "plataforma": "shopify"}])
+    assert monitor.executar(cfg, limite=1)["postados"] == 1
+    assert monitor.executar(cfg, limite=1)["postados"] == 1  # a oferta que ficou de fora sai na próxima
+    assert len(isolar) == 2 and "Bermuda" in isolar[1]

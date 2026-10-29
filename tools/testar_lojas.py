@@ -3,7 +3,8 @@ Teste rápido: descobre como cada site pode ser lido de graça.
 - VTEX:    /api/catalog_system/pub/products/search  (traz preço "de" e "por")
 - Shopify: /products.json                           (traz price e compare_at_price)
 - Feed:    /feed                                    (blogs de promoção de viagem)
-Uso: python tools/testar_lojas.py
+Uso: python tools/testar_lojas.py           (descobre a plataforma de cada site)
+     python tools/testar_lojas.py ofertas   (lê as ofertas de 20%+ das lojas do monitoramento.yml)
 """
 import json
 import sys
@@ -115,7 +116,29 @@ def testar_feed(url):
         return f"❌ {type(e).__name__}"
 
 
+def testar_ofertas():
+    import logging
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from app import monitor
+    from app.services.lojas import buscar_na_loja
+    logging.basicConfig(level=logging.WARNING)
+    for item in monitor.carregar().lojas:
+        try:
+            produtos = buscar_na_loja(item.site, item.busca, item.plataforma)
+        except Exception as e:
+            print(f"❌ {item.titulo}: {e}")
+            continue
+        ofertas = sorted((p for p in produtos if p.desconto >= item.desconto_min), key=lambda p: -p.desconto)
+        print(f"\n🏬 {item.titulo}: {len(produtos)} produtos, {len(ofertas)} com {item.desconto_min}%+")
+        for p in ofertas[:3]:
+            print(f"   {p.desconto}% | de {p.preco_original} por {p.preco} | {p.titulo[:60]} | {p.link}")
+
+
 if __name__ == "__main__":
+    if sys.argv[1:] == ["ofertas"]:
+        testar_ofertas()
+        sys.exit(0)
     resultado = {}
     for categoria, hosts in LOJAS.items():
         print(f"\n=== {categoria} ===")

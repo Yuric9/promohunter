@@ -429,7 +429,9 @@ def carregar_tudo(arquivo: Path = ARQUIVO_PADRAO) -> Monitoramento:
 
 # ---- Execução --------------------------------------------------------------------
 
-def executar(cfg: Monitoramento, simular: bool = False, hoje: Optional[date] = None) -> dict:
+def executar(cfg: Monitoramento, simular: bool = False, hoje: Optional[date] = None,
+             limite: Optional[int] = None) -> dict:
+    """Pesquisa tudo e posta. `limite` = máximo de posts nesta execução (o resto fica para a próxima)."""
     hoje = hoje or date.today()
     resumo = {"postados": 0, "repetidos": 0, "erros": 0}
     tarefas = (
@@ -440,6 +442,9 @@ def executar(cfg: Monitoramento, simular: bool = False, hoje: Optional[date] = N
         + [(f"loja {i.titulo}", i, lambda i=i: posts_loja(i)) for i in cfg.lojas]
     )
     for nome, item, tarefa in tarefas:
+        if limite and resumo["postados"] >= limite:
+            log.info("⏸️  Limite de %d post(s) por execução atingido: o restante fica para a próxima.", limite)
+            break
         try:
             posts = tarefa()
         except Exception as e:
@@ -447,6 +452,8 @@ def executar(cfg: Monitoramento, simular: bool = False, hoje: Optional[date] = N
             log.error("❌ %s: %s", nome, e)
             continue
         for post in posts:
+            if limite and resumo["postados"] >= limite:
+                break
             if ja_enviado(post.chave):
                 resumo["repetidos"] += 1
                 log.info("↩️  %s: oferta já postada recentemente", nome)
@@ -502,7 +509,7 @@ def main() -> int:
     if total * 30 > BUSCAS_GRATIS_MES:
         log.warning("⚠️  Rodando 1x por dia, isso dá ~%d buscas/mês (o plano grátis tem %d).", total * 30, BUSCAS_GRATIS_MES)
 
-    resumo = executar(cfg, simular)
+    resumo = executar(cfg, simular, limite=int(os.environ.get("MAXIMO_POSTS") or 0) or None)
     verbo = "seria(m) postada(s) (simulação)" if simular else "postada(s)"
     log.info("\nResumo: %d oferta(s) %s, %d repetida(s), %d erro(s).", resumo["postados"], verbo, resumo["repetidos"], resumo["erros"])
     if resumo["erros"] and not resumo["postados"]:

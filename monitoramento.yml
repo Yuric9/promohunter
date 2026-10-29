@@ -2,16 +2,22 @@
 #  CONFIGURAÇÃO DO PROMOHUNTER
 #
 #  O jeito fácil é pelos FORMULÁRIOS: aba "Issues" → "New issue" e
-#  escolha ✈️ Passagem, 🏨 Hospedagem, 🛒 Produto ou 📢 Promoções de blogs.
+#  escolha 🏬 Loja, ✈️ Passagem, 🏨 Hospedagem, 🛒 Produto ou 📢 Promoções de blogs.
 #  Para parar de monitorar algo, feche o issue.
 #
 #  Este arquivo continua funcionando para quem prefere escrever à mão
 #  (tudo que estiver aqui é somado aos formulários). Exemplos:
 #
-#  produtos:
+#  lojas:                # GRÁTIS: lê direto no site (lojas VTEX ou Shopify)
+#    - site: https://www.mizuno.com.br
+#      busca: tênis corrida # opcional; vazio = loja inteira
+#      desconto_min: 20     # padrão: 20
+#      preco_max: 800
+#
+#  produtos:              # Google Shopping (gasta SerpApi)
 #    - termo: air fryer
 #      preco_max: 400
-#      desconto_min: 0
+#      desconto_min: 0      # padrão: 20
 #
 #  voos:
 #    - origem: GYN
@@ -36,6 +42,57 @@
 #      palavras: [passagem, passagens, voo, voos]
 #      ultimos_dias: 2
 #
-#  ⚠️ Cada produto/voo/hospedagem gasta 1 busca da SerpApi por dia
-#     (plano grátis = 250/mês → até 8 itens). Blogs são grátis.
+#  ⏰ Lojas e blogs (grátis) são conferidos sozinhos a cada 3 horas.
+#  ⚠️ Produtos, voos e hospedagens gastam 1 busca da SerpApi cada e só rodam
+#     quando você clica em Actions → Monitorar promoções → Run workflow
+#     (plano grátis = 250 buscas/mês).
 # =====================================================================
+
+# ---------------------------------------------------------------------
+#  LOJAS (grátis) — testadas: todas usam VTEX ou Shopify.
+#  Cada loja posta no máximo 3 ofertas por vez, só com 20%+ de desconto.
+# ---------------------------------------------------------------------
+lojas:
+  # 👟 Tênis de corrida e casual (masculino)
+  - {site: https://www.mizuno.com.br, busca: tênis masculino, maximo_por_vez: 3}
+  - {site: https://www.asics.com.br, busca: tênis masculino, maximo_por_vez: 3}
+  - {site: https://www.olympikus.com.br, busca: tênis masculino, maximo_por_vez: 3}
+  - {site: https://www.fila.com.br, busca: tênis masculino, maximo_por_vez: 3}
+  - {site: https://www.newbalance.com.br, busca: tênis masculino, maximo_por_vez: 3}
+  - {site: https://www.underarmour.com.br, busca: tênis masculino, maximo_por_vez: 3}
+  - {site: https://www.artwalk.com.br, busca: tênis masculino, maximo_por_vez: 3}
+  - {site: https://www.authenticfeet.com.br, busca: tênis masculino, maximo_por_vez: 3}
+  - {site: https://www.magicfeet.com.br, busca: tênis masculino, maximo_por_vez: 3}
+
+  # 👕 Roupas masculinas
+  - {site: https://www.usereserva.com, maximo_por_vez: 3}
+  - {site: https://www.oficinareserva.com.br, maximo_por_vez: 3}
+  - {site: https://www.aramis.com.br, maximo_por_vez: 3}
+  - {site: https://www.insiderstore.com.br, busca: masculina, maximo_por_vez: 3}
+  - {site: https://www.hering.com.br, busca: masculina, maximo_por_vez: 3}
+  - {site: https://www.levi.com.br, busca: masculina, maximo_por_vez: 3}
+  - {site: https://www.calvinklein.com.br, busca: masculina, maximo_por_vez: 3}
+  - {site: https://www.taco.com.br, busca: masculina, maximo_por_vez: 3}
+
+  # 💻 Tecnologia
+  - {site: https://www.motorola.com.br, maximo_por_vez: 3}
+  - {site: https://www.americanas.com.br, busca: smartphone, preco_min: 500, maximo_por_vez: 3}
+  - {site: https://www.americanas.com.br, busca: notebook, preco_min: 1000, maximo_por_vez: 3}
+  - {site: https://www.americanas.com.br, busca: fone bluetooth, preco_min: 80, maximo_por_vez: 3}
+  - {site: https://www.multilaser.com.br, preco_min: 100, maximo_por_vez: 3}
+  - {site: https://www.philco.com.br, preco_min: 150, maximo_por_vez: 3}
+
+# ---------------------------------------------------------------------
+#  VIAGENS (grátis) — blogs de promoção de passagens e hospedagens.
+# ---------------------------------------------------------------------
+anuncios:
+  - nome: Passagens e hospedagens em promoção
+    feeds:
+      - https://www.melhoresdestinos.com.br/feed
+      - https://www.passageirodeprimeira.com/feed
+      - https://www.vaidepromo.com.br/blog/feed
+      - https://blog.maxmilhas.com.br/feed
+      - https://www.viajenaviagem.com/feed
+    palavras: [passagem, passagens, voo, voos, hotel, hotéis, pousada, resort, hospedagem, diária, pacote]
+    ultimos_dias: 1
+    maximo_por_vez: 3

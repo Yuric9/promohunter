@@ -75,6 +75,7 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           SIMULAR: ${{ inputs.simular }}
           SO_GRATIS: ${{ github.event_name == 'schedule' }}
+          MAXIMO_POSTS: "15"  # no máximo 15 ofertas por execução, para não inundar o canal
           REENVIO_HORAS: "168"  # a mesma oferta só volta a ser postada depois de 7 dias
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

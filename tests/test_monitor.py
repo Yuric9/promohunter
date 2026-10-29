@@ -26,12 +26,12 @@ def test_arquivo_de_exemplo_do_repositorio_e_valido():
 def test_exemplos_comentados_do_arquivo_sao_validos(tmp_path):
     original = (Path(__file__).resolve().parent.parent / "monitoramento.yml").read_text(encoding="utf-8")
     linhas = [l[3:] if l.startswith("#  ") and not l.startswith("#  =") else "" for l in original.splitlines()]
-    inicio = next(i for i, l in enumerate(linhas) if l.startswith("produtos:"))
-    fim = next(i for i, l in enumerate(linhas) if l.startswith("⚠️"))
+    inicio = next(i for i, l in enumerate(linhas) if l.startswith("lojas:"))
+    fim = next(i for i, l in enumerate(linhas) if l.startswith("⏰"))
     arquivo = tmp_path / "m.yml"
     arquivo.write_text("\n".join(linhas[inicio:fim]), encoding="utf-8")
     cfg = monitor.carregar(arquivo)
-    assert cfg.produtos and cfg.voos and cfg.hospedagens and cfg.anuncios
+    assert cfg.lojas and cfg.produtos and cfg.voos and cfg.hospedagens and cfg.anuncios
 
 
 def test_datas_relativas_e_fixas():
@@ -347,7 +347,7 @@ def test_monitoramento_somente_rss_nao_exige_serpapi(tmp_path, monkeypatch, capl
     monkeypatch.setattr(settings, "serpapi_key", "")
     monkeypatch.setattr(settings, "telegram_bot_token", "token-teste")
     monkeypatch.setattr(settings, "telegram_chat_id", "@canal-teste")
-    monkeypatch.setattr(monitor, "executar", lambda cfg, simular: {"postados": 0, "repetidos": 0, "erros": 0})
+    monkeypatch.setattr(monitor, "executar", lambda cfg, simular, **kw: {"postados": 0, "repetidos": 0, "erros": 0})
     assert monitor.main() == 0
     assert "0 busca(s) da SerpApi" in caplog.text
 
