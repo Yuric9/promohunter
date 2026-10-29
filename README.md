@@ -6,7 +6,7 @@ anunciadas** na internet, compara os preços, escolhe as melhores ofertas e post
 
 ## Rodando no GitHub (sem computador) ⭐
 
-O robô de monitoramento roda **sozinho no GitHub Actions, a cada 3 horas**, de graça e sem precisar
+O robô de monitoramento roda **sozinho no GitHub Actions, a cada 30 minutos**, de graça e sem precisar
 de computador ligado. Ele pesquisa tudo que está no arquivo **`monitoramento.yml`** e nos formulários:
 
 | Tipo | Onde pesquisa | O que compara |
@@ -19,7 +19,7 @@ de computador ligado. Ele pesquisa tudo que está no arquivo **`monitoramento.ym
 
 As melhores ofertas são postadas no canal do Telegram, sem repetir a mesma oferta por 7 dias.
 
-> 💸 **Grátis primeiro:** a execução automática (a cada 3 horas) só confere **lojas e blogs**, que não
+> 💸 **Grátis primeiro:** a execução automática (a cada 30 minutos) só confere **lojas e blogs**, que não
 > gastam nada. Produtos do Google, passagens e hotéis usam a SerpApi e só rodam quando você pede
 > (botão *Run workflow* ou o robô de conversa no Telegram).
 
@@ -68,7 +68,7 @@ Quando achar uma oferta, ele posta no canal **e comenta no issue**. Para parar, 
 ### 3. Testar agora (sem esperar o horário)
 Aba **Actions → Monitorar promoções → Run workflow**. Marque **"Só simular"** para ver as
 mensagens no log sem postar, ou deixe desmarcado para postar de verdade.
-O horário automático é a cada 3 horas (só lojas e blogs).
+O horário automático é a cada 30 minutos (só lojas e blogs).
 
 > O GitHub pausa agendamentos de repositórios sem nenhuma atividade por 60 dias. Se isso
 > acontecer, ele avisa por e-mail e basta clicar em "Enable workflow" na aba Actions.

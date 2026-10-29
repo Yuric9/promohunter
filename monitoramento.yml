@@ -42,7 +42,7 @@
 #      palavras: [passagem, passagens, voo, voos]
 #      ultimos_dias: 2
 #
-#  ⏰ Lojas e blogs (grátis) são conferidos sozinhos a cada 3 horas.
+#  ⏰ Lojas e blogs (grátis) são conferidos sozinhos a cada 30 minutos.
 #  ⚠️ Produtos, voos e hospedagens gastam 1 busca da SerpApi cada e só rodam
 #     quando você clica em Actions → Monitorar promoções → Run workflow
 #     (plano grátis = 250 buscas/mês).

@@ -417,7 +417,7 @@ def validar_issue(numero: int, hoje: Optional[date] = None) -> int:
     total = cfg.total_buscas()
     if tipo in ("anuncio", "loja"):
         custo = "Este item **não gasta** buscas da SerpApi (lê direto no site)."
-        quando = "O robô confere **a cada 3 horas**"
+        quando = "O robô confere **a cada 30 minutos**"
     else:
         custo = f"Cada vez que você rodar o monitor, ele faz **{total} busca(s)** da SerpApi ({BUSCAS_GRATIS_MES} grátis por mês)."
         quando = "Para economizar a SerpApi, este item **não roda sozinho**: rode em Actions → Monitorar promoções → Run workflow"

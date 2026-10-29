@@ -1,10 +1,10 @@
 name: Monitorar promoções
 
 on:
-  # A cada 3 horas confere só o que é GRÁTIS (lojas e blogs). Passagens, hotéis e produtos do
+  # A cada 30 minutos confere só o que é GRÁTIS (lojas e blogs). Passagens, hotéis e produtos do
   # Google (SerpApi) só rodam quando você clica em "Run workflow".
   schedule:
-    - cron: "17 */3 * * *"
+    - cron: "17,47 * * * *"
   issues:
     types: [opened, edited, reopened]  # confere o formulário na hora e responde no issue
   workflow_dispatch:
