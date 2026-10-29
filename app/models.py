@@ -56,6 +56,7 @@ class ResultadoVoos(BaseModel):
     voos: List[Voo]
     nivel_preco: str = ""  # "low", "typical" ou "high", segundo o Google
     faixa_tipica: Optional[List[float]] = None
+    historico: List[List[float]] = []  # [timestamp, menor preço] dos últimos ~60 dias, segundo o Google
     link: str = ""
 
 

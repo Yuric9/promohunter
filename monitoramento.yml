@@ -83,11 +83,14 @@ lojas:
   - {site: https://www.aiwa.com.br, preco_min: 80, preco_max: 2500, maximo_por_vez: 2}
 
 # ---------------------------------------------------------------------
-#  VIAGENS NO BRASIL (grátis) — blogs de promoção de passagens e hospedagens.
-#  Só posts que citam um destino nacional; os internacionais ficam de fora.
+#  PASSAGENS NO BRASIL — posts de blogs, CONFERIDOS no Google Voos.
+#  Só posta quando o preço do post está abaixo do que a rota custava há
+#  30 dias (10%+) ou abaixo da faixa normal da rota. Até 4 consultas por dia
+#  na SerpApi (~120/mês). Posts sem origem, destino e preço são ignorados.
 # ---------------------------------------------------------------------
 anuncios:
-  - nome: Viagens e hospedagens no Brasil
+  - nome: Passagens no Brasil
+    verificar_voos: true
     feeds:
       - https://www.melhoresdestinos.com.br/feed
       - https://www.passageirodeprimeira.com/feed
@@ -105,3 +108,13 @@ anuncios:
               cancún, punta cana, caribe, dubai, japão, disney]
     ultimos_dias: 1
     maximo_por_vez: 3
+
+# ---------------------------------------------------------------------
+#  HOSPEDAGENS — destinos escolhidos, consultados 1 vez por dia no Google
+#  Hotéis (1 busca da SerpApi por destino por dia). Só posta hotéis que o
+#  Google marca como "abaixo do normal" (comparado com o preço do hotel).
+# ---------------------------------------------------------------------
+hospedagens: []
+#  Exemplo (troque pelos seus destinos):
+#  - {local: pousadas em Porto de Galinhas, checkin_em_dias: 30, noites: 3, adultos: 2,
+#     so_ofertas_google: true, automatico: true}

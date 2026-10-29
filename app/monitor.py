@@ -20,7 +20,7 @@ from typing import List, Optional, Tuple
 import yaml
 from pydantic import BaseModel, Field, ValidationError, model_validator
 
-from app import historico, issues
+from app import historico, issues, verificar_viagem
 from app.config import settings
 from app.services.anuncios import buscar_anuncios
 from app.services.feeds import buscar_nos_feeds
@@ -80,6 +80,8 @@ class ItemHospedagem(Item):
     adultos: int = Field(2, ge=1)
     diaria_max: Optional[float] = None
     nota_min: float = 0
+    so_ofertas_google: bool = False  # só hotéis que o Google marca como abaixo do preço normal
+    automatico: bool = False  # roda sozinho 1 vez por dia, mesmo na execução "só grátis" (gasta 1 busca/dia)
 
     @model_validator(mode="after")
     def precisa_de_data(self):
@@ -97,6 +99,7 @@ class ItemAnuncio(Item):
     feeds: List[str] = []  # feeds RSS de blogs de promoção (grátis, não gasta busca)
     palavras: List[str] = []  # só posts que mencionam alguma dessas palavras
     excluir: List[str] = []  # descarta posts que mencionam alguma dessas (ex.: destinos internacionais)
+    verificar_voos: bool = False  # só posta passagens conferidas no Google Voos (gasta SerpApi, com limite diário)
     so_promocoes: bool = True  # descarta notícias sem preço/desconto/cupom
     busca: str = ""  # ou: busca no Google (gasta 1 busca)
     sites: List[str] = []
@@ -138,7 +141,8 @@ class Monitoramento(BaseModel):
 
     def so_gratis(self) -> "Monitoramento":
         """Só o que não gasta SerpApi: lojas e feeds RSS (usado na execução automática)."""
-        return Monitoramento(lojas=self.lojas, anuncios=[a for a in self.anuncios if not a.busca])
+        return Monitoramento(lojas=self.lojas, anuncios=[a for a in self.anuncios if not a.busca],
+                             hospedagens=[h for h in self.hospedagens if h.automatico])
 
     def total_buscas(self) -> int:
         """Buscas da SerpApi por execução (feeds RSS não contam)."""
@@ -275,9 +279,16 @@ def posts_hospedagem(item: ItemHospedagem, hoje: date) -> List[Post]:
     if entrada < hoje:
         log.warning("[hospedagem] %s: o check-in %s já passou, atualize o monitoramento.yml", item.local, entrada)
         return []
+    if item.automatico:
+        chave_dia = f"hotel-dia:{item.local}:{hoje}"
+        if ja_enviado(chave_dia):
+            log.info("[hospedagem] %s: já conferido hoje (1 busca por dia)", item.local)
+            return []
+        marcar_enviado(chave_dia)
     opcoes = [
         h for h in buscar_hospedagens(item.local, entrada, saida, item.adultos)
         if h.nota >= item.nota_min and (item.diaria_max is None or h.diaria <= item.diaria_max)
+        and (h.oferta or not item.so_ofertas_google)
     ]
     if not opcoes:
         log.info("[hospedagem] %s: nada dentro dos filtros", item.local)
@@ -288,8 +299,10 @@ def posts_hospedagem(item: ItemHospedagem, hoje: date) -> List[Post]:
     linhas = [
         f"🏨 <b>{escape(item.local.upper())}</b>",
         f"📅 {_data(entrada)} a {_data(saida)} · {item.noites} noite(s) · {item.adultos} adulto(s)",
-        "",
     ]
+    if item.so_ofertas_google:
+        linhas.append("✅ Verificado no Google Hotéis: diária abaixo do preço normal de cada hotel")
+    linhas.append("")
     for i, h in enumerate(opcoes[:3]):
         nota = f" · ⭐ {h.nota:.1f}" if h.nota else ""
         total = f" (total {_brl(h.total)})" if h.total else ""
@@ -344,7 +357,20 @@ def posts_anuncio(item: ItemAnuncio) -> List[Post]:
     if item.excluir:
         fora = [p.lower() for p in item.excluir]
         encontrados = [a for a in encontrados if not any(p in f"{a.titulo} {a.resumo}".lower() for p in fora)]
-    novos = [a for a in encontrados if not ja_enviado(a.link)][:item.maximo_por_vez]
+    novos = [a for a in encontrados if not ja_enviado(a.link)]
+    verificacao = {}
+    if item.verificar_voos:
+        # só passa o que o Google Voos confirmar: preço abaixo do que custava há 30 dias ou da faixa normal
+        conferidos = []
+        for a in novos:
+            if len(conferidos) >= item.maximo_por_vez:
+                break
+            linha = verificar_viagem.verificar(a.link, f"{a.titulo} {a.resumo}")
+            if linha:
+                verificacao[a.link] = linha
+                conferidos.append(a)
+        novos = conferidos
+    novos = novos[:item.maximo_por_vez]
     if not novos:
         log.info("[anúncios] %s: nenhum anúncio novo (%d encontrados)", item.titulo, len(encontrados))
     posts = []
@@ -355,6 +381,7 @@ def posts_anuncio(item: ItemAnuncio) -> List[Post]:
             + (f"{escape(a.resumo)}\n" if a.resumo else "")
             + (f"🗓 {escape(a.data)} · " if a.data else "")
             + (f"{escape(a.fonte)}\n" if a.fonte else "\n")
+            + (f"\n{verificacao[a.link]}\n" if a.link in verificacao else "")
             + f'\n🔗 <a href="{escape(a.link, quote=True)}">Abrir anúncio</a>'
         )
         posts.append(Post(chave=a.link, texto=texto))

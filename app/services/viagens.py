@@ -87,6 +87,8 @@ def buscar_voos(origem: str, destino: str, ida: date, volta: Optional[date] = No
         voos=voos,
         nivel_preco=insights.get("price_level") or "",
         faixa_tipica=[float(x) for x in faixa] if isinstance(faixa, list) and len(faixa) == 2 else None,
+        historico=[[float(e[0]), float(e[1])] for e in insights.get("price_history") or []
+                   if isinstance(e, list) and len(e) == 2 and all(isinstance(x, (int, float)) for x in e)],
         link=(dados.get("search_metadata") or {}).get("google_flights_url", ""),
     )
 
