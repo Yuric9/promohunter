@@ -167,7 +167,16 @@ def posts_produto(item: ItemProduto) -> List[Post]:
         detalhe = f"mais barato encontrado: {_brl(mais_barato.preco)} ({mais_barato.desconto}% off)" if mais_barato else "nenhum resultado"
         log.info("[produto] %s: nada dentro dos filtros — %s", item.termo, detalhe)
         return []
-    texto = formatar_mensagem(comp)
+    m = comp.melhor_oferta
+    titulo = m.titulo if len(m.titulo) <= 150 else m.titulo[:147] + "..."
+    preco_anterior = _brl(m.preco_original) if m.preco_original else "não informado"
+    texto = (
+        f"📦 <b>{escape(titulo)}</b>\\n"
+        f"💰 Preço antigo: {preco_anterior}\\n"
+        f"🔥 Preço novo: {_brl(m.preco)}\\n"
+        f"📉 Desconto: {m.desconto}%\\n"
+        f'🔗 <a href="{escape(m.link, quote=True)}">Link direto</a>'
+    )
     # Além da melhor oferta (maior desconto), mostra as mais baratas dentro dos filtros
     outras = sorted((p for p in comp.todas_ofertas if p.link != comp.melhor_oferta.link), key=lambda p: p.preco)[:3]
     if outras:
