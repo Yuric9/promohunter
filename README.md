@@ -30,8 +30,14 @@ Cada oferta de loja chega no canal assim:
 💰 Preço antigo: R$ 899,99
 🔥 Preço novo: R$ 559,99
 📉 Desconto: 38%
+✅ Promoção verificada: 15% abaixo do preço normal (R$ 389,00 nos últimos 7 dias)
 🔗 Link direto
 ```
+
+> 🛡️ **Contra preço falso:** muita loja mostra um preço "de" inflado o ano inteiro. Por isso o robô
+> anota o preço de cada produto todo dia e só posta quando o preço de hoje está pelo menos **10%
+> abaixo do preço normal** (mediana dos dias anteriores, com no mínimo 3 dias de histórico).
+> Ajuste com as variáveis `QUEDA_MIN` e `HISTORICO_MIN_DIAS` (0 desliga a verificação).
 
 ### 1. Cadastrar as chaves (uma vez só)
 No repositório: **Settings → Secrets and variables → Actions → New repository secret**.

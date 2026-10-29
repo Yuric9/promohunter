@@ -54,34 +54,33 @@
 #  relação ao que o robô viu nos dias anteriores (contra preço "de" inflado).
 # ---------------------------------------------------------------------
 lojas:
-  # 👟 Tênis de corrida e casual (masculino)
-  - {site: https://www.mizuno.com.br, busca: tênis masculino, maximo_por_vez: 3}
-  - {site: https://www.asics.com.br, busca: tênis masculino, maximo_por_vez: 3}
-  - {site: https://www.olympikus.com.br, busca: tênis masculino, maximo_por_vez: 3}
-  - {site: https://www.fila.com.br, busca: tênis masculino, maximo_por_vez: 3}
-  - {site: https://www.newbalance.com.br, busca: tênis masculino, maximo_por_vez: 3}
-  - {site: https://www.underarmour.com.br, busca: tênis masculino, maximo_por_vez: 3}
-  - {site: https://www.artwalk.com.br, busca: tênis masculino, maximo_por_vez: 3}
-  - {site: https://www.authenticfeet.com.br, busca: tênis masculino, maximo_por_vez: 3}
-  - {site: https://www.skechers.com.br, busca: tênis masculino, maximo_por_vez: 2}
-  - {site: https://www.penalty.com.br, busca: tênis, excluir: [infantil, juvenil, bolinha, bola, kit], maximo_por_vez: 2}
-  - {site: https://www.umbro.com.br, busca: tênis, maximo_por_vez: 2}
+  # 👟 Tênis de corrida e casual (masculino) — só abaixo de R$ 300
+  - {site: https://www.mizuno.com.br, busca: tênis masculino, preco_max: 300, maximo_por_vez: 3}
+  - {site: https://www.asics.com.br, busca: tênis masculino, preco_max: 300, maximo_por_vez: 3}
+  - {site: https://www.olympikus.com.br, busca: tênis masculino, preco_max: 300, maximo_por_vez: 3}
+  - {site: https://www.fila.com.br, busca: tênis masculino, preco_max: 300, maximo_por_vez: 3}
+  - {site: https://www.newbalance.com.br, busca: tênis masculino, preco_max: 300, maximo_por_vez: 3}
+  - {site: https://www.underarmour.com.br, busca: tênis masculino, preco_max: 300, maximo_por_vez: 3}
+  - {site: https://www.artwalk.com.br, busca: tênis masculino, preco_max: 300, maximo_por_vez: 3}
+  - {site: https://www.authenticfeet.com.br, busca: tênis masculino, preco_max: 300, maximo_por_vez: 3}
+  - {site: https://www.skechers.com.br, busca: tênis masculino, preco_max: 300, maximo_por_vez: 2}
+  - {site: https://www.penalty.com.br, busca: tênis, excluir: [infantil, juvenil, bolinha, bola, kit], preco_max: 300, maximo_por_vez: 2}
+  - {site: https://www.umbro.com.br, busca: tênis, preco_max: 300, maximo_por_vez: 2}
 
   # 👞 Sapatos e sapatênis masculinos
   - {site: https://www.ferracini.com.br, maximo_por_vez: 2}
   - {site: https://www.democrata.com.br, maximo_por_vez: 2}
 
-  # 💻 Tecnologia
-  - {site: https://www.motorola.com.br, busca: smartphone, maximo_por_vez: 3}
-  - {site: https://www.americanas.com.br, busca: smartphone, preco_min: 500, maximo_por_vez: 3}
-  - {site: https://www.americanas.com.br, busca: notebook, preco_min: 1000, maximo_por_vez: 3}
-  - {site: https://www.americanas.com.br, busca: fone bluetooth, preco_min: 80, maximo_por_vez: 3}
-  - {site: https://www.multilaser.com.br, busca: smartwatch, excluir: [reembalado], maximo_por_vez: 2}
-  - {site: https://www.multilaser.com.br, busca: fone, excluir: [reembalado, infantil], maximo_por_vez: 2}
-  - {site: https://www.philco.com.br, busca: caixa de som, maximo_por_vez: 2}
-  - {site: https://www.philco.com.br, busca: smart tv, maximo_por_vez: 2}
-  - {site: https://www.vaio.com.br, busca: notebook, maximo_por_vez: 2}
-  - {site: https://www.aiwa.com.br, preco_min: 80, maximo_por_vez: 2}
+  # 💻 Tecnologia — só abaixo de R$ 2.500
+  - {site: https://www.motorola.com.br, busca: smartphone, preco_max: 2500, maximo_por_vez: 3}
+  - {site: https://www.americanas.com.br, busca: smartphone, preco_min: 500, preco_max: 2500, maximo_por_vez: 3}
+  - {site: https://www.americanas.com.br, busca: notebook, preco_min: 1000, preco_max: 2500, maximo_por_vez: 3}
+  - {site: https://www.americanas.com.br, busca: fone bluetooth, preco_min: 80, preco_max: 2500, maximo_por_vez: 3}
+  - {site: https://www.multilaser.com.br, busca: smartwatch, excluir: [reembalado], preco_max: 2500, maximo_por_vez: 2}
+  - {site: https://www.multilaser.com.br, busca: fone, excluir: [reembalado, infantil], preco_max: 2500, maximo_por_vez: 2}
+  - {site: https://www.philco.com.br, busca: caixa de som, preco_max: 2500, maximo_por_vez: 2}
+  - {site: https://www.philco.com.br, busca: smart tv, preco_max: 2500, maximo_por_vez: 2}
+  - {site: https://www.aiwa.com.br, preco_min: 80, preco_max: 2500, maximo_por_vez: 2}
 
 # ---------------------------------------------------------------------
 #  VIAGENS NO BRASIL (grátis) — blogs de promoção de passagens e hospedagens.
