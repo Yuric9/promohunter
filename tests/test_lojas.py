@@ -56,11 +56,27 @@ def falsa_internet(monkeypatch, paginas):
 
 def test_vtex_calcula_desconto_e_ignora_esgotados(monkeypatch):
     pedidos = falsa_internet(monkeypatch, {"/api/catalog_system/": Resposta(200, VTEX)})
-    produtos = lojas.buscar_na_loja("https://www.mizuno.com.br/ofertas", "tênis corrida")
+    produtos = lojas.buscar_na_loja("https://www.mizuno.com.br/ofertas")
     assert [p.titulo for p in produtos] == ["Tênis Mizuno Wave Rider 28", "Camiseta Mizuno Run"]
     rider = produtos[0]
     assert (rider.preco, rider.preco_original, rider.desconto, rider.plataforma) == (559.99, 899.99, 38, "VTEX")
-    assert "ft=t%C3%AAnis%20corrida" in pedidos[0] and "OrderByBestDiscountDESC" in pedidos[0]
+    assert "OrderByBestDiscountDESC" in pedidos[0]
+    # com busca, só ficam os produtos com as palavras no nome
+    assert [p.titulo for p in lojas.buscar_na_loja("mizuno.com.br", "tenis")] == ["Tênis Mizuno Wave Rider 28"]
+    assert "ft=tenis" in pedidos[-1]
+
+
+def test_palavras_no_titulo_ignoram_acento_genero_e_plural():
+    assert lojas.tem_palavras("Tênis de Corrida Masculino Mizuno", "tenis masculina")
+    assert lojas.tem_palavras("Camiseta Masculina Regular", "camisetas masculino")
+    assert not lojas.tem_palavras("Escrivaninha com gaveta para notebook", "notebook dell")
+
+
+def test_loja_que_nao_aceita_ordenacao_tenta_sem_ordenar(monkeypatch):
+    def get(url, headers=None, timeout=None):
+        return Resposta(200, [] if "OrderBy" in url else VTEX)
+    monkeypatch.setattr(lojas.requests, "get", get)
+    assert len(lojas.buscar_na_loja("aramis.com.br", plataforma="vtex")) == 2
 
 
 def test_shopify_usa_a_variante_com_maior_desconto_e_filtra_palavras(monkeypatch):
@@ -88,6 +104,17 @@ def test_monitor_posta_so_descontos_de_20_por_cento_no_formato_padrao(monkeypatc
     assert "https://www.mizuno.com.br/tenis-wave-rider-28/p" in texto
     # na próxima execução a mesma oferta não é repetida
     assert monitor.executar(cfg)["postados"] == 0
+
+
+def test_loja_exclui_palavras_e_nao_repete_o_mesmo_produto_em_outra_cor(monkeypatch, isolar):
+    def produto(nome, cor):
+        return {"productName": nome, "link": f"https://loja/{nome}-{cor}/p".replace(" ", "-"),
+                "items": [{"images": [], "sellers": [{"commertialOffer": {"Price": 50, "ListPrice": 100, "AvailableQuantity": 1}}]}]}
+    dados = [produto("Camiseta Básica", "azul"), produto("Camiseta Básica", "preta"), produto("Body Bebê Reserva Mini", "x")]
+    falsa_internet(monkeypatch, {"/api/catalog_system/": Resposta(200, dados)})
+    cfg = monitor.Monitoramento(lojas=[{"site": "usereserva.com", "excluir": ["bebê", "infantil"]}])
+    assert monitor.executar(cfg)["postados"] == 1
+    assert "Camiseta Básica" in isolar[0]
 
 
 def test_execucao_automatica_so_roda_o_que_e_gratis():

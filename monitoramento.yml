@@ -62,25 +62,24 @@ lojas:
   - {site: https://www.underarmour.com.br, busca: tênis masculino, maximo_por_vez: 3}
   - {site: https://www.artwalk.com.br, busca: tênis masculino, maximo_por_vez: 3}
   - {site: https://www.authenticfeet.com.br, busca: tênis masculino, maximo_por_vez: 3}
-  - {site: https://www.magicfeet.com.br, busca: tênis masculino, maximo_por_vez: 3}
 
   # 👕 Roupas masculinas
-  - {site: https://www.usereserva.com, maximo_por_vez: 3}
-  - {site: https://www.oficinareserva.com.br, maximo_por_vez: 3}
+  - {site: https://www.usereserva.com, excluir: [bebê, bebe, mini, infantil, feminina], maximo_por_vez: 3}
+  - {site: https://www.oficinareserva.com.br, maximo_por_vez: 2}
   - {site: https://www.aramis.com.br, maximo_por_vez: 3}
   - {site: https://www.insiderstore.com.br, busca: masculina, maximo_por_vez: 3}
   - {site: https://www.hering.com.br, busca: masculina, maximo_por_vez: 3}
-  - {site: https://www.levi.com.br, busca: masculina, maximo_por_vez: 3}
-  - {site: https://www.calvinklein.com.br, busca: masculina, maximo_por_vez: 3}
+  - {site: https://www.levi.com.br, busca: masculina, maximo_por_vez: 2}
+  - {site: https://www.calvinklein.com.br, busca: masculina, excluir: [mochila, bolsa], maximo_por_vez: 3}
   - {site: https://www.taco.com.br, busca: masculina, maximo_por_vez: 3}
 
   # 💻 Tecnologia
-  - {site: https://www.motorola.com.br, maximo_por_vez: 3}
+  - {site: https://www.motorola.com.br, busca: smartphone, maximo_por_vez: 3}
   - {site: https://www.americanas.com.br, busca: smartphone, preco_min: 500, maximo_por_vez: 3}
   - {site: https://www.americanas.com.br, busca: notebook, preco_min: 1000, maximo_por_vez: 3}
   - {site: https://www.americanas.com.br, busca: fone bluetooth, preco_min: 80, maximo_por_vez: 3}
-  - {site: https://www.multilaser.com.br, preco_min: 100, maximo_por_vez: 3}
-  - {site: https://www.philco.com.br, preco_min: 150, maximo_por_vez: 3}
+  - {site: https://www.multilaser.com.br, preco_min: 100, excluir: [infantil, brinquedo], maximo_por_vez: 3}
+  - {site: https://www.philco.com.br, preco_min: 150, excluir: [liquidificador, airfryer, fritadeira, ventilador, cafeteira, batedeira, aspirador], maximo_por_vez: 3}
 
 # ---------------------------------------------------------------------
 #  VIAGENS (grátis) — blogs de promoção de passagens e hospedagens.

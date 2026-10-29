@@ -25,7 +25,7 @@ from app.services.anuncios import buscar_anuncios
 from app.services.feeds import buscar_nos_feeds
 from app.services.comparador import comparar_termo
 from app.services.google_shopping import buscar_google_shopping
-from app.services.lojas import buscar_na_loja, host_da_loja
+from app.services.lojas import buscar_na_loja, host_da_loja, tem_palavras
 from app.services.telegram import enviar_telegram
 from app.services.viagens import buscar_hospedagens, buscar_voos
 from app.storage import ja_enviado, marcar_enviado
@@ -118,6 +118,7 @@ class ItemLoja(Item):
     desconto_min: int = Field(20, ge=0, le=100)
     preco_min: float = 0
     preco_max: Optional[float] = None
+    excluir: List[str] = []  # descarta produtos com essas palavras no nome (ex.: bebê, infantil)
     plataforma: Optional[str] = None  # "vtex" ou "shopify"; vazio = descobre sozinho
     maximo_por_vez: int = Field(5, ge=1, le=20)
 
@@ -296,8 +297,12 @@ def posts_loja(item: ItemLoja) -> List[Post]:
     if not item.busca:
         produtos = sem_acessorios("", produtos)
     ofertas = [p for p in produtos if p.desconto >= item.desconto_min
-               and item.preco_min <= p.preco <= (item.preco_max or float("inf"))]
+               and item.preco_min <= p.preco <= (item.preco_max or float("inf"))
+               and not any(tem_palavras(p.titulo, palavra) for palavra in item.excluir)]
     ofertas.sort(key=lambda p: p.desconto, reverse=True)
+    # o mesmo produto em outra cor/tamanho conta uma vez só
+    vistos = set()
+    ofertas = [p for p in ofertas if not (p.titulo.lower() in vistos or vistos.add(p.titulo.lower()))]
     # o mesmo produto volta a ser postado se o preço cair de novo
     novas = [p for p in ofertas if not ja_enviado(f"{p.link}|{p.preco:.0f}")][:item.maximo_por_vez]
     log.info("[loja] %s: %d produto(s), %d com %d%%+ de desconto, %d nova(s)",

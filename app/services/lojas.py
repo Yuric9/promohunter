@@ -8,6 +8,7 @@ O leitor certo é descoberto sozinho na primeira vez (ou informado em `plataform
 """
 import logging
 import re
+import unicodedata
 from typing import List, Optional
 from urllib.parse import quote, urlparse
 
@@ -38,6 +39,21 @@ def host_da_loja(site: str) -> str:
 def nome_da_loja(host: str) -> str:
     partes = [p for p in host.split(".") if p not in ("www", "loja", "br", "com", "store")]
     return (partes[0] if partes else host).capitalize()
+
+
+def _normalizar(texto: str) -> str:
+    sem_acento = unicodedata.normalize("NFKD", texto).encode("ascii", "ignore").decode()
+    return sem_acento.lower()
+
+
+def tem_palavras(titulo: str, palavras: str) -> bool:
+    """True se o título tem todas as palavras (sem ligar para acento, masculino/masculina, plural)."""
+    titulo = _normalizar(titulo)
+    for w in _normalizar(palavras).split():
+        raiz = w[:-1] if len(w) > 4 and w[-1] in "aos" else w
+        if raiz not in titulo:
+            return False
+    return True
 
 
 def _desconto(preco: float, preco_original: Optional[float]) -> int:
@@ -77,12 +93,15 @@ def produtos_vtex(dados: list, host: str) -> List[Produto]:
 
 
 def buscar_vtex(host: str, busca: str = "", quantidade: int = 50) -> List[Produto]:
-    # Ordenado pelo maior desconto: as melhores ofertas vêm primeiro
-    url = (f"https://{host}/api/catalog_system/pub/products/search?_from=0&_to={min(quantidade, 50) - 1}"
-           f"&O=OrderByBestDiscountDESC")
+    url = f"https://{host}/api/catalog_system/pub/products/search?_from=0&_to={min(quantidade, 50) - 1}"
     if busca:
         url += "&ft=" + quote(busca)
-    dados = _get(url)
+    # Ordenado pelo maior desconto: as melhores ofertas vêm primeiro (algumas lojas não aceitam a ordenação)
+    try:
+        dados = _get(url + "&O=OrderByBestDiscountDESC")
+    except LojaNaoSuportada:
+        dados = None
+    dados = dados or _get(url)
     if not isinstance(dados, list):
         raise LojaNaoSuportada("resposta não é da VTEX")
     return produtos_vtex(dados, host)
@@ -112,23 +131,22 @@ def buscar_shopify(host: str, busca: str = "", quantidade: int = 250) -> List[Pr
     dados = _get(f"https://{host}/products.json?limit={min(quantidade, 250)}")
     if not isinstance(dados, dict) or "products" not in dados:
         raise LojaNaoSuportada("resposta não é da Shopify")
-    produtos = produtos_shopify(dados, host)
-    if busca:
-        palavras = [w for w in re.split(r"\s+", busca.lower()) if w]
-        produtos = [p for p in produtos if all(w in p.titulo.lower() for w in palavras)]
-    return produtos
+    return produtos_shopify(dados, host)
 
 
 LEITORES = {"vtex": buscar_vtex, "shopify": buscar_shopify}
 
 
 def buscar_na_loja(site: str, busca: str = "", plataforma: Optional[str] = None) -> List[Produto]:
-    """Lê as ofertas da loja. Sem `plataforma`, tenta VTEX e depois Shopify."""
+    """Lê as ofertas da loja. Sem `plataforma`, tenta VTEX e depois Shopify.
+    Com `busca`, só ficam os produtos que têm essas palavras no nome."""
     host = host_da_loja(site)
     erros = []
     for nome in [plataforma] if plataforma else PLATAFORMAS:
         try:
             produtos = LEITORES[nome](host, busca)
+            if busca:
+                produtos = [p for p in produtos if tem_palavras(p.titulo, busca)]
             log.info("[loja] %s: %d produto(s) lidos (%s)", host, len(produtos), nome.upper())
             return produtos
         except (LojaNaoSuportada, ValueError, requests.RequestException) as e:
