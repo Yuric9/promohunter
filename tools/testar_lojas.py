@@ -15,33 +15,44 @@ import requests
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
                     "Chrome/130.0 Safari/537.36", "Accept": "application/json,text/html;q=0.9,*/*;q=0.8"}
 
+# Lote 2 de candidatas (o lote 1 já foi testado: resultado no monitoramento.yml)
 LOJAS = {
     "Tênis e calçados": [
-        "www.netshoes.com.br", "www.centauro.com.br", "www.artwalk.com.br", "www.authenticfeet.com.br",
-        "www.nike.com.br", "www.adidas.com.br", "www.mizuno.com.br", "www.asics.com.br", "www.olympikus.com.br",
-        "www.fila.com.br", "br.puma.com", "www.newbalance.com.br", "www.underarmour.com.br", "www.vans.com.br",
-        "www.converse.com.br", "www.tf.com.br", "www.dafiti.com.br", "www.zattini.com.br", "www.kanui.com.br",
-        "www.ofertasonline.com.br", "www.magicfeet.com.br", "www.lojavirus.com.br",
+        "www.reebok.com.br", "www.skechers.com.br", "www.topper.com.br", "www.penalty.com.br",
+        "www.diadora.com.br", "www.rainha.com.br", "www.kappa.com.br", "www.umbro.com.br",
+        "www.timberland.com.br", "www.ferracini.com.br", "www.democrata.com.br", "www.pegada.com.br",
+        "www.samello.com.br", "www.mrcat.com.br", "www.usaflex.com.br", "www.kildare.com.br",
+        "www.maze.com.br", "www.gallerist.com.br", "www.sunsetsurf.com.br", "www.hoka.com.br",
+        "www.saucony.com.br", "www.oakley.com.br", "www.mormaii.com.br",
+        "www.lojamaze.com.br", "www.droper.app", "www.ascsneakers.com.br", "www.lojaonrunning.com.br",
     ],
     "Roupas masculinas": [
-        "www.usereserva.com", "www.hering.com.br", "www.insiderstore.com.br", "www.aramis.com.br",
-        "www.richards.com.br", "www.colcci.com.br", "www.lacoste.com.br", "br.tommy.com", "www.calvinklein.com.br",
-        "www.dzarm.com.br", "www.lojasrenner.com.br", "www.riachuelo.com.br", "www.cea.com.br", "www.osklen.com.br",
-        "www.foxtonbrasil.com.br", "www.basicamente.com.br", "www.highcompany.com.br", "www.levi.com.br",
-        "www.lojalevis.com.br", "www.taco.com.br", "www.mash.com.br", "www.oficinareserva.com.br",
+        "www.redley.com.br", "www.dudalina.com.br", "www.individual.com.br", "www.vrcollezioni.com.br",
+        "www.siberian.com.br", "www.brooksfield.com.br", "www.forum.com.br", "www.ellus.com.br",
+        "www.tng.com.br", "www.hurley.com.br", "www.quiksilver.com.br", "www.billabong.com.br",
+        "www.lupo.com.br", "www.polowear.com.br", "www.malwee.com.br", "www.piticas.com.br",
+        "www.cavalera.com.br", "www.aleatory.com.br", "www.osmoze.com.br", "www.sergiok.com.br",
+        "www.zerezes.com.br", "www.approve.com.br", "www.chicorei.com", "www.ogochi.com.br",
+        "www.youcom.com.br", "www.oqvestir.com.br", "www.studioz.com.br", "www.colombo.com.br",
+        "www.hangloose.com.br", "www.fatalsurf.com.br",
     ],
     "Tecnologia": [
-        "www.kabum.com.br", "www.pichau.com.br", "www.terabyteshop.com.br", "www.fastshop.com.br",
-        "www.samsung.com", "www.motorola.com.br", "www.lenovo.com", "www.dell.com", "loja.positivo.com.br",
-        "www.multilaser.com.br", "www.jbl.com.br", "www.mi.com", "www.carrefour.com.br", "www.casasbahia.com.br",
-        "www.magazineluiza.com.br", "www.americanas.com.br", "www.girafa.com.br", "www.mercadolivre.com.br",
-        "www.amazon.com.br", "www.gocase.com.br", "www.havan.com.br", "www.extra.com.br", "www.pontofrio.com.br",
-        "www.lg.com", "www.philco.com.br", "www.mondial.com.br", "www.electrolux.com.br", "www.brastemp.com.br",
-        "www.consul.com.br", "www.compracerta.com.br", "www.efacil.com.br", "www.shopfacil.com.br",
+        "www.shoptime.com.br", "www.submarino.com.br", "www.iplace.com.br", "www.ibyte.com.br",
+        "www.gazin.com.br", "www.lojaskoerich.com.br", "www.novomundo.com.br", "www.casaevideo.com.br",
+        "www.webcontinental.com.br", "www.lebiscuit.com.br", "loja.intelbras.com.br", "www.aiwa.com.br",
+        "www.redragon.com.br", "www.logitechstore.com.br", "www.vaio.com.br", "www.i2go.com.br",
+        "www.elgin.com.br", "www.tcl.com", "www.positivotecnologia.com.br", "www.mondaine.com.br",
+        "www.technos.com.br", "www.relogiosmagnum.com.br", "www.haylou.com.br", "www.amazfit.com.br",
+        "www.lojaxiaomi.com.br", "www.xiaomistore.com.br", "www.gshield.com.br", "www.baseus.com.br",
+        "www.anker.com.br", "www.edifier.com.br", "www.kalunga.com.br", "www.zoom.com.br",
+    ],
+    "Viagem (malas e acessórios)": [
+        "www.samsonite.com.br", "www.sestini.com.br", "www.americantourister.com.br", "www.travelmate.com.br",
+        "www.primicia.com.br", "www.jacki-design.com.br", "www.lojapolo.com.br", "www.yins.com.br",
     ],
 }
 
-FEEDS = [
+FEEDS_LOTE1 = [
     "https://www.melhoresdestinos.com.br/feed", "https://passagensimperdiveis.com.br/feed",
     "https://www.passageirodeprimeira.com/feed", "https://pontospravoar.com/feed",
     "https://www.viajenaviagem.com/feed", "https://www.promocoesaereas.com.br/feed",
@@ -54,6 +65,8 @@ FEEDS = [
     "https://www.hardmob.com.br/external.php?type=RSS2&forumids=407",
     "https://www.gatry.com/feed", "https://www.ofertaesperta.com/feed",
 ]
+
+FEEDS = []  # feeds já testados no lote 1
 
 
 def vtex(host):
@@ -144,10 +157,11 @@ if __name__ == "__main__":
     resultado = {}
     for categoria, hosts in LOJAS.items():
         print(f"\n=== {categoria} ===")
-        for host in hosts:
-            tipo, info = testar_loja(host)
-            resultado[host] = tipo
-            print(f"{tipo:8} {host:30} {info}")
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(8) as pool:  # várias lojas ao mesmo tempo, para o teste não demorar
+            for host, (tipo, info) in zip(hosts, pool.map(testar_loja, hosts)):
+                resultado[host] = tipo
+                print(f"{tipo:8} {host:30} {info}")
     print("\n=== Feeds de viagem / promoções ===")
     for url in FEEDS:
         print(f"{url:65} {testar_feed(url)}")

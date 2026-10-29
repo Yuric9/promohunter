@@ -18,4 +18,5 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
+      - run: python tools/testar_lojas.py
       - run: python tools/testar_lojas.py ofertas
