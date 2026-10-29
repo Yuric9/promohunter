@@ -25,7 +25,7 @@ from app.services.anuncios import buscar_anuncios
 from app.services.feeds import buscar_nos_feeds
 from app.services.comparador import comparar_termo
 from app.services.google_shopping import buscar_google_shopping
-from app.services.telegram import enviar_telegram, formatar_mensagem
+from app.services.telegram import enviar_telegram
 from app.services.viagens import buscar_hospedagens, buscar_voos
 from app.storage import ja_enviado, marcar_enviado
 
@@ -45,7 +45,7 @@ class ItemProduto(Item):
     termo: str
     preco_min: float = 0
     preco_max: Optional[float] = None
-    desconto_min: int = 0
+    desconto_min: int = 20
 
 
 class ItemVoo(Item):
@@ -167,16 +167,16 @@ def posts_produto(item: ItemProduto) -> List[Post]:
         detalhe = f"mais barato encontrado: {_brl(mais_barato.preco)} ({mais_barato.desconto}% off)" if mais_barato else "nenhum resultado"
         log.info("[produto] %s: nada dentro dos filtros — %s", item.termo, detalhe)
         return []
-    texto = formatar_mensagem(comp)
-    # Além da melhor oferta (maior desconto), mostra as mais baratas dentro dos filtros
-    outras = sorted((p for p in comp.todas_ofertas if p.link != comp.melhor_oferta.link), key=lambda p: p.preco)[:3]
-    if outras:
-        linhas = []
-        for p in outras:
-            titulo = p.titulo if len(p.titulo) <= 60 else p.titulo[:57] + "..."
-            loja = f" · {escape(p.loja)}" if p.loja else ""
-            linhas.append(f'• <b>{_brl(p.preco)}</b> — <a href="{escape(p.link, quote=True)}">{escape(titulo)}</a>{loja}')
-        texto += "\n\n💸 <b>Mais baratas encontradas:</b>\n" + "\n".join(linhas)
+    m = comp.melhor_oferta
+    titulo = m.titulo if len(m.titulo) <= 150 else m.titulo[:147] + "..."
+    preco_anterior = _brl(m.preco_original) if m.preco_original else "não informado"
+    texto = (
+        f"📦 <b>{escape(titulo)}</b>\n"
+        f"💰 Preço antigo: {preco_anterior}\n"
+        f"🔥 Preço novo: {_brl(m.preco)}\n"
+        f"📉 Desconto: {m.desconto}%\n"
+        f'🔗 <a href="{escape(m.link, quote=True)}">Link direto</a>'
+    )
     return [Post(chave=comp.melhor_oferta.link, texto=texto, imagem=comp.melhor_oferta.imagem)]
 
 
@@ -429,14 +429,15 @@ def main() -> int:
         log.error("O %s tem um valor inválido:\n%s", arquivo, e)
         return 1
 
-    if not settings.serpapi_key:
-        log.error("Falta a chave SERPAPI_KEY (no GitHub: Settings → Secrets and variables → Actions).")
+    total = cfg.total_buscas()
+    if total and not settings.serpapi_key:
+        log.error("Falta a chave SERPAPI_KEY: este monitoramento tem %d busca(s) que dependem dela.", total)
         return 1
-    if not simular and not (settings.telegram_bot_token and settings.telegram_chat_id):
+    tem_itens = bool(cfg.produtos or cfg.voos or cfg.hospedagens or cfg.anuncios)
+    if tem_itens and not simular and not (settings.telegram_bot_token and settings.telegram_chat_id):
         log.error("Faltam TELEGRAM_BOT_TOKEN e/ou TELEGRAM_CHAT_ID (no GitHub: Settings → Secrets and variables → Actions).")
         return 1
 
-    total = cfg.total_buscas()
     log.info("🔎 %d item(ns) para pesquisar = %d busca(s) da SerpApi nesta execução.", total, total)
     if total * 30 > BUSCAS_GRATIS_MES:
         log.warning("⚠️  Rodando 1x por dia, isso dá ~%d buscas/mês (o plano grátis tem %d).", total * 30, BUSCAS_GRATIS_MES)

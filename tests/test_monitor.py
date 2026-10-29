@@ -112,29 +112,42 @@ def test_produto_usa_filtros(monkeypatch, isolar):
     monkeypatch.setattr(monitor, "buscar_google_shopping", lambda termo: produtos)
     cfg = monitor.Monitoramento(produtos=[{"termo": "air fryer", "preco_max": 600, "desconto_min": 15}])
     monitor.executar(cfg, hoje=HOJE)
-    assert "Air Fryer A" in isolar[0] and "Magalu" in isolar[0]
+    assert "Air Fryer A" in isolar[0] and "R$ 450,00" in isolar[0]
 
 
-def test_produto_mostra_tambem_as_mais_baratas(monkeypatch, isolar):
+def test_produto_mensagem_contem_apenas_os_cinco_campos(monkeypatch, isolar):
     produtos = [
-        Produto(titulo="iPhone 17 Air 1TB", preco=9289, preco_original=9989, desconto=7, link="https://air", plataforma="G", loja="Intec"),
-        Produto(titulo="iPhone 17 128GB", preco=5999, link="https://17", plataforma="G", loja="Magalu"),
-        Produto(titulo="iPhone 17 256GB", preco=6799, link="https://17b", plataforma="G", loja="Amazon"),
-        Produto(titulo="Capinha iPhone 17", preco=39, link="https://capa", plataforma="G"),
+        Produto(titulo="Tênis de corrida", preco=240, preco_original=300, desconto=20,
+                link="https://loja.exemplo/produto", plataforma="G", loja="Loja Exemplo"),
     ]
     monkeypatch.setattr(monitor, "buscar_google_shopping", lambda termo: produtos)
-    cfg = monitor.Monitoramento(produtos=[{"termo": "iphone 17", "preco_min": 3000}])
+    cfg = monitor.Monitoramento(produtos=[{"termo": "tênis"}])
     monitor.executar(cfg, hoje=HOJE)
     texto = isolar[0]
-    assert "iPhone 17 Air 1TB" in texto and "Mais baratas encontradas" in texto
-    assert texto.index("R$ 5.999,00") < texto.index("R$ 6.799,00") and "Capinha" not in texto
+    assert "Tênis de corrida" in texto
+    assert "Preço antigo: R$ 300,00" in texto
+    assert "Preço novo: R$ 240,00" in texto
+    assert "Desconto: 20%" in texto
+    assert "https://loja.exemplo/produto" in texto
+    assert "Loja Exemplo" not in texto
+    assert "Economia" not in texto and "Mais baratas encontradas" not in texto
+
+
+def test_produto_com_desconto_abaixo_de_20_nao_passa_no_filtro_padrao(monkeypatch, isolar):
+    produtos = [
+        Produto(titulo="Tênis casual", preco=90, preco_original=100, desconto=10,
+                link="https://loja.exemplo/tenis", plataforma="G"),
+    ]
+    monkeypatch.setattr(monitor, "buscar_google_shopping", lambda termo: produtos)
+    cfg = monitor.Monitoramento(produtos=[{"termo": "tênis"}])
+    monitor.executar(cfg, hoje=HOJE)
+    assert isolar == []
 
 
 def test_erro_em_um_item_nao_para_os_outros(monkeypatch, isolar):
     def quebra(*a):
         raise RuntimeError("SerpApi: Invalid API key.")
-    monkeypatch.setattr(monitor, "buscar_voos", quebra)
-    monkeypatch.setattr(monitor, "buscar_anuncios", lambda b, d, s: [Anuncio(titulo="X", link="https://x")])
+    monkeypatch.setattr(monitor, "buscar_voos", quebra)    monkeypatch.setattr(monitor, "buscar_anuncios", lambda b, d, s: [Anuncio(titulo="X", link="https://x")])
     cfg = monitor.Monitoramento(voos=[{"origem": "GYN", "destino": "REC", "ida_em_dias": 5}],
                                 anuncios=[{"busca": "promo"}])
     assert monitor.executar(cfg, hoje=HOJE) == {"postados": 1, "repetidos": 0, "erros": 1}
@@ -284,7 +297,6 @@ def test_feeds_rss_e_atom_filtrando_data_e_palavras(monkeypatch):
         @classmethod
         def now(cls, tz=None):
             return datetime(2026, 10, 27, 18, 0, tzinfo=timezone.utc)
-
     monkeypatch.setattr(feeds, "datetime", Agora)
     todos = feeds.buscar_nos_feeds(["https://md/feed", "https://atom/feed"], ultimos_dias=2)
     # o post antigo e a notícia sem promoção ficam de fora
@@ -319,3 +331,32 @@ def test_anuncios_por_feed_nao_gastam_busca(monkeypatch, isolar):
     assert "Passagens em promoção" in isolar[0] and "Recife por R$ 389" in isolar[0]
     with pytest.raises(ValueError):
         monitor.ItemAnuncio(nome="sem fonte")
+
+
+def test_monitoramento_somente_rss_nao_exige_serpapi(tmp_path, monkeypatch, caplog):
+    caplog.set_level("INFO")
+    arquivo = tmp_path / "m.yml"
+    arquivo.write_text(
+        "anuncios:\n  - nome: Ofertas Netshoes\n"
+        "    feeds: [https://exemplo.test/feed.xml]\n"
+        "    palavras: [netshoes]\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("MONITORAMENTO", str(arquivo))
+    monkeypatch.setattr(settings, "serpapi_key", "")
+    monkeypatch.setattr(settings, "telegram_bot_token", "token-teste")
+    monkeypatch.setattr(settings, "telegram_chat_id", "@canal-teste")
+    monkeypatch.setattr(monitor, "executar", lambda cfg, simular: {"postados": 0, "repetidos": 0, "erros": 0})
+    assert monitor.main() == 0
+    assert "0 busca(s) da SerpApi" in caplog.text
+
+
+def test_monitoramento_com_busca_paga_sem_serpapi_falha(tmp_path, monkeypatch, caplog):
+    arquivo = tmp_path / "m.yml"
+    arquivo.write_text("produtos:\n  - termo: tênis\n", encoding="utf-8")
+    monkeypatch.setenv("MONITORAMENTO", str(arquivo))
+    monkeypatch.setattr(settings, "serpapi_key", "")
+    monkeypatch.setattr(settings, "telegram_bot_token", "token-teste")
+    monkeypatch.setattr(settings, "telegram_chat_id", "@canal-teste")
+    assert monitor.main() == 1
+    assert "dependem dela" in caplog.text
