@@ -84,4 +84,8 @@ def enviar_privado(chat_id: str, texto: str) -> dict:
                                 "disable_web_page_preview": True})
         return {"ok": True}
     except Exception as e:
-        return {"ok": False, "erro": str(e)}
+        erro = str(e).split(" → ")[0]
+        if "chat not found" in erro.lower() or "blocked" in erro.lower():
+            erro += (" → abra o SEU robô no Telegram (o link t.me/... que o BotFather mandou) e toque em Iniciar;"
+                     " confira também se TELEGRAM_DONO tem só os números do seu usuário")
+        return {"ok": False, "erro": erro}
