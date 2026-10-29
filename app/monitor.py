@@ -429,14 +429,15 @@ def main() -> int:
         log.error("O %s tem um valor inválido:\n%s", arquivo, e)
         return 1
 
-    if not settings.serpapi_key:
-        log.error("Falta a chave SERPAPI_KEY (no GitHub: Settings → Secrets and variables → Actions).")
+    total = cfg.total_buscas()
+    if total and not settings.serpapi_key:
+        log.error("Falta a chave SERPAPI_KEY: este monitoramento tem %d busca(s) que dependem dela.", total)
         return 1
-    if not simular and not (settings.telegram_bot_token and settings.telegram_chat_id):
+    tem_itens = bool(cfg.produtos or cfg.voos or cfg.hospedagens or cfg.anuncios)
+    if tem_itens and not simular and not (settings.telegram_bot_token and settings.telegram_chat_id):
         log.error("Faltam TELEGRAM_BOT_TOKEN e/ou TELEGRAM_CHAT_ID (no GitHub: Settings → Secrets and variables → Actions).")
         return 1
 
-    total = cfg.total_buscas()
     log.info("🔎 %d item(ns) para pesquisar = %d busca(s) da SerpApi nesta execução.", total, total)
     if total * 30 > BUSCAS_GRATIS_MES:
         log.warning("⚠️  Rodando 1x por dia, isso dá ~%d buscas/mês (o plano grátis tem %d).", total * 30, BUSCAS_GRATIS_MES)
