@@ -25,7 +25,7 @@ from app.services.anuncios import buscar_anuncios
 from app.services.feeds import buscar_nos_feeds
 from app.services.comparador import comparar_termo
 from app.services.google_shopping import buscar_google_shopping
-from app.services.telegram import enviar_telegram, formatar_mensagem
+from app.services.telegram import enviar_telegram
 from app.services.viagens import buscar_hospedagens, buscar_voos
 from app.storage import ja_enviado, marcar_enviado
 
@@ -171,21 +171,12 @@ def posts_produto(item: ItemProduto) -> List[Post]:
     titulo = m.titulo if len(m.titulo) <= 150 else m.titulo[:147] + "..."
     preco_anterior = _brl(m.preco_original) if m.preco_original else "não informado"
     texto = (
-        f"📦 <b>{escape(titulo)}</b>\\n"
-        f"💰 Preço antigo: {preco_anterior}\\n"
-        f"🔥 Preço novo: {_brl(m.preco)}\\n"
-        f"📉 Desconto: {m.desconto}%\\n"
+        f"📦 <b>{escape(titulo)}</b>\n"
+        f"💰 Preço antigo: {preco_anterior}\n"
+        f"🔥 Preço novo: {_brl(m.preco)}\n"
+        f"📉 Desconto: {m.desconto}%\n"
         f'🔗 <a href="{escape(m.link, quote=True)}">Link direto</a>'
     )
-    # Além da melhor oferta (maior desconto), mostra as mais baratas dentro dos filtros
-    outras = sorted((p for p in comp.todas_ofertas if p.link != comp.melhor_oferta.link), key=lambda p: p.preco)[:3]
-    if outras:
-        linhas = []
-        for p in outras:
-            titulo = p.titulo if len(p.titulo) <= 60 else p.titulo[:57] + "..."
-            loja = f" · {escape(p.loja)}" if p.loja else ""
-            linhas.append(f'• <b>{_brl(p.preco)}</b> — <a href="{escape(p.link, quote=True)}">{escape(titulo)}</a>{loja}')
-        texto += "\n\n💸 <b>Mais baratas encontradas:</b>\n" + "\n".join(linhas)
     return [Post(chave=comp.melhor_oferta.link, texto=texto, imagem=comp.melhor_oferta.imagem)]
 
 
