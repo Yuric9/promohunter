@@ -83,14 +83,15 @@ lojas:
   - {site: https://www.aiwa.com.br, preco_min: 80, preco_max: 2500, maximo_por_vez: 2}
 
 # ---------------------------------------------------------------------
-#  PASSAGENS NO BRASIL — posts de blogs, CONFERIDOS no Google Voos.
-#  Só posta quando o preço do post está abaixo do que a rota custava há
-#  30 dias (10%+) ou abaixo da faixa normal da rota. Até 4 consultas por dia
-#  na SerpApi (~120/mês). Posts sem origem, destino e preço são ignorados.
+#  PASSAGENS SAINDO DE GOIÂNIA — os blogs indicam o destino em promoção e o
+#  robô confere no Google Voos o preço GOIÂNIA → destino. Só posta quando a
+#  rota está 10%+ abaixo do que custava há 30 dias ou abaixo da faixa normal.
+#  Até 4 consultas por dia na SerpApi (~120/mês).
 # ---------------------------------------------------------------------
 anuncios:
-  - nome: Passagens no Brasil
+  - nome: Passagens saindo de Goiânia
     verificar_voos: true
+    origem: GYN
     feeds:
       - https://www.melhoresdestinos.com.br/feed
       - https://www.passageirodeprimeira.com/feed
@@ -110,11 +111,10 @@ anuncios:
     maximo_por_vez: 3
 
 # ---------------------------------------------------------------------
-#  HOSPEDAGENS — destinos escolhidos, consultados 1 vez por dia no Google
-#  Hotéis (1 busca da SerpApi por destino por dia). Só posta hotéis que o
-#  Google marca como "abaixo do normal" (comparado com o preço do hotel).
+#  HOSPEDAGENS — pousadas no estado de Goiás, consultadas 1 vez por dia no
+#  Google Hotéis (1 busca da SerpApi por dia, ~30/mês). Só posta pousadas que
+#  o Google marca como "abaixo do normal" (comparado com o preço da pousada).
 # ---------------------------------------------------------------------
-hospedagens: []
-#  Exemplo (troque pelos seus destinos):
-#  - {local: pousadas em Porto de Galinhas, checkin_em_dias: 30, noites: 3, adultos: 2,
-#     so_ofertas_google: true, automatico: true}
+hospedagens:
+  - {local: pousadas no estado de Goiás, checkin_em_dias: 30, noites: 2, adultos: 2,
+     so_ofertas_google: true, automatico: true}

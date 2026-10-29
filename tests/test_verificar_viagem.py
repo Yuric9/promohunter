@@ -83,3 +83,35 @@ def test_hotel_automatico_roda_1_vez_por_dia_e_so_com_selo_do_google(monkeypatch
     assert len(buscas) == 1
     assert "Resort Promo" in isolar[0] and "Pousada Sem Promo" not in isolar[0]
     assert "Verificado no Google Hotéis" in isolar[0]
+
+
+def test_origem_fixa_goiania_confere_a_rota_saindo_de_goiania(monkeypatch, isolar):
+    # o blog anuncia São Paulo → Recife; o robô confere Goiânia → Recife
+    voo = verificar_viagem.extrair(POST, HOJE, origem_fixa="GYN")
+    assert (voo.origem, voo.destino, voo.nome_origem, voo.preco) == ("GYN", "REC", "Goiânia", None)
+    assert verificar_viagem.extrair("Passagens baratas para Goiânia", HOJE, origem_fixa="GYN") is None
+    rotas = []
+
+    def google_gyn(origem, destino, ida, volta):
+        rotas.append((origem, destino))
+        res = google(900, faixa=(800, 1200))
+        res.voos = [Voo(preco=690, companhia="LATAM")]
+        res.link = "https://google.com/travel/flights?gyn-rec"
+        return res
+    monkeypatch.setattr(verificar_viagem, "buscar_voos", google_gyn)
+    posts = [Anuncio(titulo=POST, link="https://blog/recife")]
+    monkeypatch.setattr(monitor, "buscar_nos_feeds", lambda *a: posts)
+    cfg = monitor.Monitoramento(anuncios=[{"feeds": ["https://blog/feed"], "verificar_voos": True, "origem": "gyn"}])
+    assert monitor.executar(cfg)["postados"] == 1
+    assert rotas == [("GYN", "REC")]
+    assert "Saindo de Goiânia:</b> Goiânia → Recife por <b>R$ 690</b>" in isolar[0]
+    assert "há 30 dias custava R$ 900" in isolar[0] and "Ver voos no Google" in isolar[0]
+
+
+def test_origem_fixa_nao_posta_se_a_rota_de_goiania_esta_no_preco_normal(monkeypatch, isolar):
+    def google_normal(*a):
+        res = google(700, faixa=(600, 900))
+        res.voos = [Voo(preco=690, companhia="GOL")]
+        return res
+    monkeypatch.setattr(verificar_viagem, "buscar_voos", google_normal)
+    assert verificar_viagem.verificar("https://blog/x", POST, HOJE, origem="GYN") is None

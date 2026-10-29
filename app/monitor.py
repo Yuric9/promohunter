@@ -100,6 +100,7 @@ class ItemAnuncio(Item):
     palavras: List[str] = []  # só posts que mencionam alguma dessas palavras
     excluir: List[str] = []  # descarta posts que mencionam alguma dessas (ex.: destinos internacionais)
     verificar_voos: bool = False  # só posta passagens conferidas no Google Voos (gasta SerpApi, com limite diário)
+    origem: str = ""  # aeroporto de saída fixo (ex.: GYN): confere o preço da SUA cidade até o destino do post
     so_promocoes: bool = True  # descarta notícias sem preço/desconto/cupom
     busca: str = ""  # ou: busca no Google (gasta 1 busca)
     sites: List[str] = []
@@ -365,7 +366,7 @@ def posts_anuncio(item: ItemAnuncio) -> List[Post]:
         for a in novos:
             if len(conferidos) >= item.maximo_por_vez:
                 break
-            linha = verificar_viagem.verificar(a.link, f"{a.titulo} {a.resumo}")
+            linha = verificar_viagem.verificar(a.link, f"{a.titulo} {a.resumo}", origem=item.origem.upper())
             if linha:
                 verificacao[a.link] = linha
                 conferidos.append(a)
@@ -563,7 +564,8 @@ def main() -> int:
 
     if os.environ.get("SO_GRATIS", "").lower() in ("1", "true", "sim"):
         cfg = cfg.so_gratis()
-        log.info("💸 Execução automática: só lojas e blogs (grátis). Passagens, hotéis e produtos do Google ficam para quando você pedir.")
+        log.info("💸 Execução automática: lojas e blogs (grátis), passagens conferidas no Google Voos (até %d por dia) "
+                 "e hospedagens marcadas como automáticas (1 vez por dia).", settings.verificacoes_dia)
     total = cfg.total_buscas()
     if total and not settings.serpapi_key:
         log.error("Falta a chave SERPAPI_KEY: este monitoramento tem %d busca(s) que dependem dela.", total)
