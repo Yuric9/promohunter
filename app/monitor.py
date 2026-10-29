@@ -134,17 +134,30 @@ class ItemLoja(Item):
         return host_da_loja(self.site) + (f" ({self.busca})" if self.busca else "")
 
 
+class ItemDesejo(Item):
+    """Lista de desejos: avisa (no privado e no canal) quando o produto chegar no preço que você quer.
+    Procura em todas as lojas da lista (grátis, sem SerpApi)."""
+    termo: str = Field(min_length=2)
+    preco_max: float = Field(gt=0)
+    excluir: List[str] = []
+
+    @property
+    def titulo(self) -> str:
+        return f"{self.termo} até {_brl(self.preco_max)}"
+
+
 class Monitoramento(BaseModel):
     produtos: List[ItemProduto] = []
     voos: List[ItemVoo] = []
     hospedagens: List[ItemHospedagem] = []
     anuncios: List[ItemAnuncio] = []
     lojas: List[ItemLoja] = []
+    desejos: List[ItemDesejo] = []
 
     def so_gratis(self) -> "Monitoramento":
         """Só o que não gasta SerpApi: lojas e feeds RSS (usado na execução automática)."""
         return Monitoramento(lojas=self.lojas, anuncios=[a for a in self.anuncios if not a.busca],
-                             hospedagens=[h for h in self.hospedagens if h.automatico])
+                             hospedagens=[h for h in self.hospedagens if h.automatico], desejos=self.desejos)
 
     def total_buscas(self) -> int:
         """Buscas da SerpApi por execução (feeds RSS não contam)."""
@@ -175,6 +188,7 @@ class Post(BaseModel):
     chave: str  # identifica a oferta para não postar repetido
     texto: str
     imagem: str = ""
+    privado: bool = False  # também avisa o dono no privado (lista de desejos)
 
 
 ACESSORIOS = re.compile(r"\b(capa|capinha|case|pel[ií]cula|cabo|carregador|suporte|adesivo|skin|bainha|"
@@ -373,6 +387,40 @@ def posts_loja(item: ItemLoja) -> List[Post]:
     return [Post(chave=f"{p.link}|{p.preco:.0f}", texto=formatar_oferta(p, v), imagem=p.imagem) for p, v in novas]
 
 
+def posts_desejo(item: ItemDesejo, lojas: List[ItemLoja]) -> List[Post]:
+    """Procura o produto desejado em todas as lojas da lista e avisa o mais barato que chegou no preço."""
+    sites = {}
+    for loja in lojas:
+        sites.setdefault(host_da_loja(loja.site), loja.plataforma)
+    achados = []
+    for host, plataforma in sites.items():
+        try:
+            produtos = buscar_na_loja(host, item.termo, plataforma)
+        except Exception as e:
+            log.info("[desejo] %s em %s: não consegui ler (%s)", item.termo, host, e)
+            continue
+        historico.registrar(produtos)
+        achados += [p for p in produtos
+                    if not any(tem_palavras(p.titulo, palavra) for palavra in item.excluir)]
+    no_preco = sorted((p for p in achados if p.preco <= item.preco_max), key=lambda p: p.preco)
+    mais_barato = min(achados, key=lambda p: p.preco, default=None)
+    if mais_barato:
+        relatorio.anotar(categoria="desejo", origem="lista de desejos", titulo=f"{item.termo}: {mais_barato.titulo}",
+                         preco=mais_barato.preco, preco_de=mais_barato.preco_original, desconto=mais_barato.desconto,
+                         link=mais_barato.link, chave=f"desejo:{mais_barato.link}|{mais_barato.preco:.0f}",
+                         situacao="aprovado" if no_preco else "rejeitado",
+                         detalhe=f"seu alvo: {_brl(item.preco_max)}"
+                         + (" ✔ chegou!" if no_preco else f" · mais barato agora em {host_da_loja(mais_barato.link)}"))
+    log.info("[desejo] %s: %d produto(s) em %d loja(s), %d até %s", item.termo, len(achados), len(sites),
+             len(no_preco), _brl(item.preco_max))
+    posts = []
+    for p in no_preco[:1]:
+        texto = (f"⭐ <b>LISTA DE DESEJOS:</b> {escape(item.termo)} chegou em {_brl(p.preco)} "
+                 f"(seu alvo: {_brl(item.preco_max)})\n\n" + formatar_oferta(p))
+        posts.append(Post(chave=f"desejo:{p.link}|{p.preco:.0f}", texto=texto, imagem=p.imagem, privado=True))
+    return posts
+
+
 def posts_anuncio(item: ItemAnuncio) -> List[Post]:
     encontrados = buscar_nos_feeds(item.feeds, item.palavras, item.ultimos_dias, item.so_promocoes) if item.feeds else []
     if item.busca:
@@ -423,6 +471,7 @@ TIPOS = {
     "produto": (ItemProduto, "produtos"),
     "anuncio": (ItemAnuncio, "anuncios"),
     "loja": (ItemLoja, "lojas"),
+    "desejo": (ItemDesejo, "desejos"),
 }
 
 
@@ -470,6 +519,10 @@ def descrever(tipo: str, item, hoje: date) -> str:
     if tipo == "produto":
         faixa = f"de {_brl(item.preco_min)} " if item.preco_min else ""
         return f"🛒 **{item.termo}**, {faixa}até {preco(item.preco_max)}, desconto mínimo de {item.desconto_min}%."
+    if tipo == "desejo":
+        fora = f" (sem: {', '.join(item.excluir)})" if item.excluir else ""
+        return (f"⭐ **{item.termo}**{fora}: aviso quando aparecer por **{_brl(item.preco_max)} ou menos** "
+                "em qualquer loja da lista.")
     if tipo == "loja":
         faixa = f", preço até {preco(item.preco_max)}" if item.preco_max else ""
         return (f"🏬 **{host_da_loja(item.site)}**" + (f", produtos com “{item.busca}”" if item.busca else ", todos os produtos")
@@ -495,7 +548,7 @@ def validar_issue(numero: int, hoje: Optional[date] = None) -> int:
         return 0  # issue comum, não é formulário do PromoHunter
     cfg = carregar_tudo()
     total = cfg.total_buscas()
-    if tipo in ("anuncio", "loja"):
+    if tipo in ("anuncio", "loja", "desejo"):
         custo = "Este item **não gasta** buscas da SerpApi (lê direto no site)."
         quando = "O robô confere **a cada 30 minutos**"
     else:
@@ -531,6 +584,7 @@ def executar(cfg: Monitoramento, simular: bool = False, hoje: Optional[date] = N
         + [(f"hospedagem '{i.local}'", i, lambda i=i: posts_hospedagem(i, hoje)) for i in cfg.hospedagens]
         + [(f"anúncios '{i.titulo}'", i, lambda i=i: posts_anuncio(i)) for i in cfg.anuncios]
         + [(f"loja {i.titulo}", i, lambda i=i: posts_loja(i)) for i in cfg.lojas]
+        + [(f"desejo {i.titulo}", i, lambda i=i: posts_desejo(i, cfg.lojas)) for i in cfg.desejos]
     )
     # 1) pesquisa tudo
     resultados = []
@@ -546,6 +600,7 @@ def executar(cfg: Monitoramento, simular: bool = False, hoje: Optional[date] = N
     # 2) posta intercalando: 1 oferta de cada item por rodada, para o limite não ficar só nos primeiros da lista
     rodadas = max((len(posts) for _, _, posts in resultados), default=0)
     fila = [(nome, item, posts[r]) for r in range(rodadas) for nome, item, posts in resultados if r < len(posts)]
+    fila.sort(key=lambda t: not t[2].privado)  # desejos da sua lista passam na frente do limite
     for nome, item, post in fila:
         if limite and resumo["postados"] >= limite:
             log.info("⏸️  Limite de %d post(s) por execução atingido: o restante fica para a próxima.", limite)
@@ -564,6 +619,8 @@ def executar(cfg: Monitoramento, simular: bool = False, hoje: Optional[date] = N
             relatorio.postado(post.chave)
             resumo["postados"] += 1
             log.info("✅ %s: postado no Telegram", nome)
+            if post.privado and settings.dono_chat_id:
+                enviar_privado(settings.dono_chat_id, "🔔 " + post.texto)
             if item.issue:
                 issues.comentar(item.issue, "🔔 **Nova oferta postada no canal:**\n\n" + issues.html_para_markdown(post.texto))
         else:

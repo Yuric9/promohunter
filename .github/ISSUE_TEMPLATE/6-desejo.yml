@@ -1,0 +1,27 @@
+name: "⭐ Lista de desejos"
+description: Avisa (no privado e no canal) quando um produto chegar no preço que você quer. Grátis.
+title: "⭐ Desejo: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Preencha e clique em **Create**. A cada 30 minutos o robô procura o produto em todas as lojas
+        da lista e, quando aparecer pelo seu preço ou menos, avisa você no privado e posta no canal.
+        Para tirar da lista, feche este issue (ou mande `/remover` para o robô no Telegram).
+  - type: input
+    attributes:
+      label: O que você quer
+      description: As palavras que precisam estar no nome do produto.
+      placeholder: tênis asics novablast
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Pagar no máximo (R$)
+      placeholder: "400"
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Palavras para excluir
+      description: "Opcional, separadas por vírgula. Ex.: infantil, feminino"

@@ -89,7 +89,7 @@ def markdown(agora: Optional[datetime] = None) -> str:
         linhas += [f"**Lojas:** {len(lojas)} buscas · {lidos} produtos lidos · "
                    f"{sum(l.com_desconto for l in lojas)} com o desconto mínimo", "",
                    _linha_contagem("loja"), ""]
-    for categoria, titulo in (("passagem", "✈️ Passagens"), ("pousada", "🏨 Pousadas")):
+    for categoria, titulo in (("desejo", "⭐ Lista de desejos"), ("passagem", "✈️ Passagens"), ("pousada", "🏨 Pousadas")):
         if any(r.categoria == categoria for r in registros):
             linhas += [f"**{titulo}:** {_linha_contagem(categoria)}", ""]
     linhas += ["| | Origem | Item | Preço | Preço \"de\" | Situação |", "|---|---|---|---|---|---|"]
@@ -113,7 +113,8 @@ def telegram(agora: Optional[datetime] = None, exemplos: int = 12) -> str:
         partes.append(f"🏬 <b>Lojas:</b> {len(lojas)} buscas · {sum(l.lidos for l in lojas)} produtos lidos · "
                       f"{sum(l.com_desconto for l in lojas)} com desconto mínimo")
         partes.append(escape(_linha_contagem("loja")))
-    for categoria, titulo in (("passagem", "✈️ <b>Passagens:</b>"), ("pousada", "🏨 <b>Pousadas:</b>")):
+    for categoria, titulo in (("desejo", "⭐ <b>Lista de desejos:</b>"), ("passagem", "✈️ <b>Passagens:</b>"),
+                             ("pousada", "🏨 <b>Pousadas:</b>")):
         if any(r.categoria == categoria for r in registros):
             partes.append(f"{titulo} {escape(_linha_contagem(categoria))}")
     # exemplos: primeiro os que passaram, depois um de cada situação em cada origem

@@ -53,6 +53,11 @@ CAMPOS = {
         "blogs (feeds rss)": "feeds",
         "posts dos últimos quantos dias": "ultimos_dias",
     },
+    "desejo": {
+        "o que você quer": "termo",
+        "pagar no máximo (r$)": "preco_max",
+        "palavras para excluir": "excluir",
+    },
     "loja": {
         "site da loja": "site",
         "só produtos com estas palavras": "busca",
@@ -62,7 +67,7 @@ CAMPOS = {
 }
 # Campo que identifica o tipo do formulário
 MARCADORES = {"aeroporto de origem": "voo", "onde": "hospedagem", "produto": "produto", "blogs (feeds rss)": "anuncio",
-              "site da loja": "loja"}
+              "site da loja": "loja", "o que você quer": "desejo"}
 
 
 def ler_formulario(corpo: str) -> Dict[str, str]:
@@ -102,7 +107,7 @@ def _converter(tipo: str, chave: str, valor: str):
         return "barato" in valor.lower() or "normal" in valor.lower()
     if chave == "nota_min":
         return 0.0 if "qualquer" in valor.lower() else _numero(valor)
-    if chave in ("palavras",):
+    if chave in ("palavras", "excluir"):
         return [p.strip() for p in re.split(r"[,;\n]", valor) if p.strip()]
     if chave == "feeds":
         return [linha.strip() for linha in valor.splitlines() if linha.strip().startswith("http")]
@@ -185,3 +190,25 @@ def erro_legivel(e: Exception) -> str:
             partes.append(f"- **{campo}**: {erro['msg'].removeprefix('Value error, ')}")
         return "\n".join(partes)
     return f"- {e}"
+
+
+def criar_issue(titulo: str, corpo: str) -> dict:
+    r = requests.post(f"{API}/repos/{_repo()}/issues", headers=_cabecalhos(),
+                      json={"title": titulo, "body": corpo}, timeout=20)
+    r.raise_for_status()
+    return r.json()
+
+
+def fechar_issue(numero: int, comentario: str = ""):
+    if comentario:
+        comentar(numero, comentario)
+    r = requests.patch(f"{API}/repos/{_repo()}/issues/{numero}", headers=_cabecalhos(),
+                       json={"state": "closed", "state_reason": "completed"}, timeout=20)
+    r.raise_for_status()
+
+
+def corpo_desejo(termo: str, preco_max: float, excluir: Optional[List[str]] = None) -> str:
+    """Texto no mesmo formato do formulário ⭐ Lista de desejos (o monitor lê igual)."""
+    return (f"### O que você quer\n\n{termo}\n\n### Pagar no máximo (R$)\n\n{preco_max:.2f}\n\n"
+            f"### Palavras para excluir\n\n{', '.join(excluir) if excluir else '_No response_'}\n")
+
