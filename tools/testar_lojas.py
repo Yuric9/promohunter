@@ -138,6 +138,7 @@ def testar_ofertas():
     from app import monitor
     from app.config import settings
     settings.data_dir = __import__("pathlib").Path(tempfile.mkdtemp())  # ignora o histórico de enviados
+    settings.historico_min_dias = 0  # sem histórico aqui: mostra as candidatas antes da verificação de preço
     logging.basicConfig(level=logging.WARNING)
     for item in monitor.carregar().lojas:
         try:
