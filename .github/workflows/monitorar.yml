@@ -73,6 +73,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_DONO: ${{ secrets.TELEGRAM_DONO }}
 
       - name: Pesquisar e postar
         if: github.event_name != 'issues' && !inputs.diagnosticar_telegram

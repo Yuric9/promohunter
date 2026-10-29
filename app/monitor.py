@@ -586,7 +586,7 @@ def publicar_relatorio(agora: Optional[datetime] = None):
     pedido = os.environ.get("ENVIAR_STATUS", "").lower() in ("1", "true", "sim")
     if not pedido and (agora.hour < 8 or ja_enviado(chave)):
         return
-    envio = enviar_privado(settings.telegram_dono, relatorio.telegram(agora))
+    envio = enviar_privado(settings.dono_chat_id, relatorio.telegram(agora))
     if envio["ok"]:
         marcar_enviado(chave)
         log.info("📊 Relatório de status enviado para você no Telegram.")
