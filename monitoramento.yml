@@ -76,8 +76,10 @@ lojas:
   - {site: https://www.americanas.com.br, busca: smartphone, preco_min: 500, maximo_por_vez: 3}
   - {site: https://www.americanas.com.br, busca: notebook, preco_min: 1000, maximo_por_vez: 3}
   - {site: https://www.americanas.com.br, busca: fone bluetooth, preco_min: 80, maximo_por_vez: 3}
-  - {site: https://www.multilaser.com.br, preco_min: 100, excluir: [infantil, brinquedo, reembalado], maximo_por_vez: 3}
-  - {site: https://www.philco.com.br, preco_min: 150, excluir: [liquidificador, air fryer, fritadeira, ventilador, cafeteira, batedeira, aspirador, grill, secador, chapinha, escova, forno, panela, purificador, bebedouro, sanduicheira], maximo_por_vez: 3}
+  - {site: https://www.multilaser.com.br, busca: smartwatch, excluir: [reembalado], maximo_por_vez: 2}
+  - {site: https://www.multilaser.com.br, busca: fone, excluir: [reembalado, infantil], maximo_por_vez: 2}
+  - {site: https://www.philco.com.br, busca: caixa de som, maximo_por_vez: 2}
+  - {site: https://www.philco.com.br, busca: smart tv, maximo_por_vez: 2}
 
 # ---------------------------------------------------------------------
 #  VIAGENS (grátis) — blogs de promoção de passagens e hospedagens.
