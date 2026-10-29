@@ -78,6 +78,7 @@ class ItemHospedagem(Item):
     checkin_em_dias: Optional[int] = Field(None, ge=0)
     noites: int = Field(2, ge=1)
     adultos: int = Field(2, ge=1)
+    criancas: List[int] = []  # idade de cada criança (bebê = 1), ex.: [1, 5, 12]
     diaria_max: Optional[float] = None
     nota_min: float = 0
     so_ofertas_google: bool = False  # só hotéis que o Google marca como abaixo do preço normal
@@ -287,7 +288,7 @@ def posts_hospedagem(item: ItemHospedagem, hoje: date) -> List[Post]:
             return []
         marcar_enviado(chave_dia)
     opcoes = [
-        h for h in buscar_hospedagens(item.local, entrada, saida, item.adultos)
+        h for h in buscar_hospedagens(item.local, entrada, saida, item.adultos, item.criancas)
         if h.nota >= item.nota_min and (item.diaria_max is None or h.diaria <= item.diaria_max)
         and (h.oferta or not item.so_ofertas_google)
     ]
@@ -299,7 +300,8 @@ def posts_hospedagem(item: ItemHospedagem, hoje: date) -> List[Post]:
     melhor = opcoes[0]
     linhas = [
         f"🏨 <b>{escape(item.local.upper())}</b>",
-        f"📅 {_data(entrada)} a {_data(saida)} · {item.noites} noite(s) · {item.adultos} adulto(s)",
+        f"📅 {_data(entrada)} a {_data(saida)} · {item.noites} noite(s) · {item.adultos} adulto(s)"
+        + (f" + {len(item.criancas)} criança(s)" if item.criancas else ""),
     ]
     if item.so_ofertas_google:
         linhas.append("✅ Verificado no Google Hotéis: diária abaixo do preço normal de cada hotel")

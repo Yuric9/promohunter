@@ -93,15 +93,21 @@ def buscar_voos(origem: str, destino: str, ida: date, volta: Optional[date] = No
     )
 
 
-def buscar_hospedagens(local: str, checkin: date, checkout: date, adultos: int = 2) -> List[Hospedagem]:
-    dados = _serpapi({
+def buscar_hospedagens(local: str, checkin: date, checkout: date, adultos: int = 2,
+                       criancas: Optional[List[int]] = None) -> List[Hospedagem]:
+    """`criancas`: idade de cada criança (bebê = 1), para o Google mostrar quartos e preços para a família."""
+    params = {
         "engine": "google_hotels",
         "q": local,
         "check_in_date": checkin.isoformat(),
         "check_out_date": checkout.isoformat(),
         "adults": adultos,
         "currency": "BRL",
-    })
+    }
+    if criancas:
+        params["children"] = len(criancas)
+        params["children_ages"] = ",".join(str(max(1, min(17, i))) for i in criancas)
+    dados = _serpapi(params)
     link_busca = (dados.get("search_metadata") or {}).get("google_hotels_url", "")
 
     hospedagens = []

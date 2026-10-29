@@ -116,5 +116,6 @@ anuncios:
 #  o Google marca como "abaixo do normal" (comparado com o preço da pousada).
 # ---------------------------------------------------------------------
 hospedagens:
-  - {local: pousadas no estado de Goiás, checkin_em_dias: 30, noites: 2, adultos: 2,
+  # família: 2 adultos + 3 crianças (bebê, 5 e 12 anos; bebê conta como 1 ano para o Google)
+  - {local: pousadas no estado de Goiás, checkin_em_dias: 30, noites: 2, adultos: 2, criancas: [1, 5, 12],
      so_ofertas_google: true, automatico: true}

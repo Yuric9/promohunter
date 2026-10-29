@@ -115,3 +115,17 @@ def test_origem_fixa_nao_posta_se_a_rota_de_goiania_esta_no_preco_normal(monkeyp
         return res
     monkeypatch.setattr(verificar_viagem, "buscar_voos", google_normal)
     assert verificar_viagem.verificar("https://blog/x", POST, HOJE, origem="GYN") is None
+
+
+def test_pousada_para_familia_envia_idade_das_criancas(monkeypatch, isolar):
+    from app.services import viagens
+    enviados = {}
+    monkeypatch.setattr(viagens, "_serpapi", lambda params: enviados.update(params) or {"properties": []})
+    viagens.buscar_hospedagens("pousadas no estado de Goiás", date(2026, 12, 1), date(2026, 12, 3), 2, [1, 5, 12])
+    assert (enviados["adults"], enviados["children"], enviados["children_ages"]) == (2, 3, "1,5,12")
+    hoteis = [Hospedagem(nome="Pousada Família", diaria=450, nota=4.7, oferta="20% abaixo do normal")]
+    monkeypatch.setattr(monitor, "buscar_hospedagens", lambda *a: hoteis)
+    cfg = monitor.Monitoramento(hospedagens=[{"local": "pousadas no estado de Goiás", "checkin_em_dias": 30,
+                                              "criancas": [1, 5, 12], "so_ofertas_google": True}])
+    monitor.executar(cfg, hoje=HOJE)
+    assert "2 adulto(s) + 3 criança(s)" in isolar[0]
