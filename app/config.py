@@ -24,10 +24,10 @@ class Settings(BaseSettings):
 
     data_dir: Path = Path("data")
     reenvio_horas: int = 24
-    # Promoção real: preço de hoje pelo menos QUEDA_MIN% abaixo da mediana que o robô viu antes,
-    # com pelo menos HISTORICO_MIN_DIAS dias de histórico (0 = não confere o histórico)
-    historico_min_dias: int = 3
-    queda_min: int = 10
+    # Regra do seu uso: só compara o preço final da oferta com o teto desejado.
+    # A checagem histórica foi desligada para focar em "até R$ 300" / "promoção real".
+    historico_min_dias: int = 0
+    queda_min: int = 0
     # Passagens de blogs conferidas no Google Voos: no máximo N buscas da SerpApi por dia
     verificacoes_dia: int = 4
 
