@@ -24,10 +24,10 @@ class Settings(BaseSettings):
 
     data_dir: Path = Path("data")
     reenvio_horas: int = 24
-    # Regra do seu uso: só compara o preço final da oferta com o teto desejado.
-    # A checagem histórica foi desligada para focar em "até R$ 300" / "promoção real".
+    # Desliga a checagem histórica somente para ofertas das lojas.
     historico_min_dias: int = 0
-    queda_min: int = 0
+    # Voos continuam exigindo queda real: mínimo de 10% versus o preço de 30 dias atrás.
+    queda_min: int = 10
     # Passagens de blogs conferidas no Google Voos: no máximo N buscas da SerpApi por dia
     verificacoes_dia: int = 4
 
