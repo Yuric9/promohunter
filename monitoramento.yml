@@ -50,72 +50,35 @@
 
 # ---------------------------------------------------------------------
 #  LOJAS (grátis) — testadas: todas usam VTEX ou Shopify.
-#  Só posta com 20%+ de desconto E quando o preço caiu de verdade em
-#  relação ao que o robô viu nos dias anteriores (contra preço "de" inflado).
+#  Só posta com 15%+ de desconto, até R$ 400, E quando o preço caiu de
+#  verdade em relação ao que o robô viu nos dias anteriores (contra preço
+#  "de" inflado).
+#  Passagens e hospedagens foram desligadas (só lojas e lista de desejos).
 # ---------------------------------------------------------------------
 lojas:
-  # 👟 Tênis de corrida e casual (masculino) — só abaixo de R$ 300
-  - {site: https://www.mizuno.com.br, busca: tênis masculino, preco_max: 300, maximo_por_vez: 3}
-  - {site: https://www.asics.com.br, busca: tênis masculino, preco_max: 300, maximo_por_vez: 3}
-  - {site: https://www.olympikus.com.br, busca: tênis masculino, preco_max: 300, maximo_por_vez: 3}
-  - {site: https://www.fila.com.br, busca: tênis masculino, preco_max: 300, maximo_por_vez: 3}
-  - {site: https://www.newbalance.com.br, busca: tênis masculino, preco_max: 300, maximo_por_vez: 3}
-  - {site: https://www.underarmour.com.br, busca: tênis masculino, preco_max: 300, maximo_por_vez: 3}
-  - {site: https://www.artwalk.com.br, busca: tênis masculino, preco_max: 300, maximo_por_vez: 3}
-  - {site: https://www.authenticfeet.com.br, busca: tênis masculino, preco_max: 300, maximo_por_vez: 3}
-  - {site: https://www.skechers.com.br, busca: tênis masculino, preco_max: 300, maximo_por_vez: 2}
-  - {site: https://www.penalty.com.br, busca: tênis, excluir: [infantil, juvenil, bolinha, bola, kit], preco_max: 300, maximo_por_vez: 2}
-  - {site: https://www.umbro.com.br, busca: tênis, preco_max: 300, maximo_por_vez: 2}
+  # 👟 Tênis de corrida e casual (masculino)
+  - {site: https://www.mizuno.com.br, busca: tênis masculino, desconto_min: 15, preco_max: 400, maximo_por_vez: 3}
+  - {site: https://www.asics.com.br, busca: tênis masculino, desconto_min: 15, preco_max: 400, maximo_por_vez: 3}
+  - {site: https://www.olympikus.com.br, busca: tênis masculino, desconto_min: 15, preco_max: 400, maximo_por_vez: 3}
+  - {site: https://www.fila.com.br, busca: tênis masculino, desconto_min: 15, preco_max: 400, maximo_por_vez: 3}
+  - {site: https://www.newbalance.com.br, busca: tênis masculino, desconto_min: 15, preco_max: 400, maximo_por_vez: 3}
+  - {site: https://www.underarmour.com.br, busca: tênis masculino, desconto_min: 15, preco_max: 400, maximo_por_vez: 3}
+  - {site: https://www.artwalk.com.br, busca: tênis masculino, desconto_min: 15, preco_max: 400, maximo_por_vez: 3}
+  - {site: https://www.authenticfeet.com.br, busca: tênis masculino, desconto_min: 15, preco_max: 400, maximo_por_vez: 3}
+  - {site: https://www.skechers.com.br, busca: tênis masculino, desconto_min: 15, preco_max: 400, maximo_por_vez: 2}
+  - {site: https://www.penalty.com.br, busca: tênis, excluir: [infantil, juvenil, bolinha, bola, kit], desconto_min: 15, preco_max: 400, maximo_por_vez: 2}
+  - {site: https://www.umbro.com.br, busca: tênis, desconto_min: 15, preco_max: 400, maximo_por_vez: 2}
 
-  # 👞 Sapatos e sapatênis masculinos — só abaixo de R$ 300
-  - {site: https://www.ferracini.com.br, preco_max: 300, maximo_por_vez: 2}
-  - {site: https://www.democrata.com.br, preco_max: 300, maximo_por_vez: 2}
+  # 👞 Sapatos e sapatênis masculinos
+  - {site: https://www.ferracini.com.br, desconto_min: 15, preco_max: 400, maximo_por_vez: 2}
+  - {site: https://www.democrata.com.br, desconto_min: 15, preco_max: 400, maximo_por_vez: 2}
 
-  # 💻 Tecnologia — só abaixo de R$ 2.500
-  - {site: https://www.motorola.com.br, busca: smartphone, preco_max: 2500, maximo_por_vez: 3}
-  - {site: https://www.americanas.com.br, busca: smartphone, preco_min: 500, preco_max: 2500, maximo_por_vez: 3}
-  - {site: https://www.americanas.com.br, busca: notebook, preco_min: 1000, preco_max: 2500, maximo_por_vez: 3}
-  - {site: https://www.americanas.com.br, busca: fone bluetooth, preco_min: 80, preco_max: 2500, maximo_por_vez: 3}
-  - {site: https://www.multilaser.com.br, busca: smartwatch, excluir: [reembalado], preco_max: 2500, maximo_por_vez: 2}
-  - {site: https://www.multilaser.com.br, busca: fone, excluir: [reembalado, infantil], preco_max: 2500, maximo_por_vez: 2}
-  - {site: https://www.philco.com.br, busca: caixa de som, preco_max: 2500, maximo_por_vez: 2}
-  - {site: https://www.philco.com.br, busca: smart tv, preco_max: 2500, maximo_por_vez: 2}
-  - {site: https://www.aiwa.com.br, preco_min: 80, preco_max: 2500, maximo_por_vez: 2}
-
-# ---------------------------------------------------------------------
-#  PASSAGENS SAINDO DE GOIÂNIA — os blogs indicam o destino em promoção e o
-#  robô confere no Google Voos o preço GOIÂNIA → destino. Só posta quando a
-#  rota está 10%+ abaixo do que custava há 30 dias ou abaixo da faixa normal.
-#  Até 4 consultas por dia na SerpApi (~120/mês).
-# ---------------------------------------------------------------------
-anuncios:
-  - nome: Passagens saindo de Goiânia
-    verificar_voos: true
-    origem: GYN
-    feeds:
-      - https://www.melhoresdestinos.com.br/feed
-      - https://www.passageirodeprimeira.com/feed
-      - https://www.vaidepromo.com.br/blog/feed
-      - https://blog.maxmilhas.com.br/feed
-      - https://www.viajenaviagem.com/feed
-    palavras: [nacional, nacionais, brasil, nordeste, são paulo, rio de janeiro, salvador, recife, fortaleza,
-               natal, maceió, joão pessoa, aracaju, são luís, teresina, belém, manaus, porto alegre,
-               florianópolis, curitiba, belo horizonte, brasília, goiânia, cuiabá, campo grande, vitória,
-               porto seguro, foz do iguaçu, gramado, bonito, jericoacoara, noronha, porto de galinhas,
-               maragogi, búzios, paraty, ubatuba, chapada, pirenópolis, caldas novas, lençóis, ilhabela,
-               arraial, trancoso, morro de são paulo, balneário camboriú, campos do jordão, pantanal]
-    excluir: [internacional, internacionais, europa, portugal, lisboa, paris, londres, madri,
-              roma, miami, orlando, nova york, estados unidos, eua, buenos aires, argentina, santiago, chile,
-              cancún, punta cana, caribe, dubai, japão, disney]
-    ultimos_dias: 1
-    maximo_por_vez: 3
-
-# ---------------------------------------------------------------------
-#  HOSPEDAGENS — pousadas no estado de Goiás, consultadas 1 vez por dia no
-#  Google Hotéis (1 busca da SerpApi por dia, ~30/mês). Só posta pousadas que
-#  o Google marca como "abaixo do normal" (comparado com o preço da pousada).
-# ---------------------------------------------------------------------
-hospedagens:
-  # família: 2 adultos + 3 crianças (bebê, 5 e 12 anos; bebê conta como 1 ano para o Google)
-  - {local: pousadas no estado de Goiás, checkin_em_dias: 30, noites: 2, adultos: 2, criancas: [1, 5, 12],
-     so_ofertas_google: true, automatico: true}
+  # 💻 Tecnologia (notebook saiu: não existe notebook até R$ 400)
+  - {site: https://www.motorola.com.br, busca: smartphone, desconto_min: 15, preco_max: 400, maximo_por_vez: 3}
+  - {site: https://www.americanas.com.br, busca: smartphone, desconto_min: 15, preco_min: 200, preco_max: 400, maximo_por_vez: 3}
+  - {site: https://www.americanas.com.br, busca: fone bluetooth, desconto_min: 15, preco_min: 80, preco_max: 400, maximo_por_vez: 3}
+  - {site: https://www.multilaser.com.br, busca: smartwatch, excluir: [reembalado], desconto_min: 15, preco_max: 400, maximo_por_vez: 2}
+  - {site: https://www.multilaser.com.br, busca: fone, excluir: [reembalado, infantil], desconto_min: 15, preco_max: 400, maximo_por_vez: 2}
+  - {site: https://www.philco.com.br, busca: caixa de som, desconto_min: 15, preco_max: 400, maximo_por_vez: 2}
+  - {site: https://www.philco.com.br, busca: smart tv, desconto_min: 15, preco_max: 400, maximo_por_vez: 2}
+  - {site: https://www.aiwa.com.br, desconto_min: 15, preco_min: 80, preco_max: 400, maximo_por_vez: 2}
