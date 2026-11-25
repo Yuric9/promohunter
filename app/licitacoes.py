@@ -1,7 +1,7 @@
 """
 Licitações em aberto de Trindade-GO e cidades próximas (fonte: API pública do PNCP).
 - GitHub Actions roda `python -m app.licitacoes`: avisa as novas, alerta prazos e manda o resumo diário.
-  Em Trindade entram todas; nas cidades vizinhas, só as de tecnologia.
+  Entram todas as categorias, em Trindade e nas vizinhas; compras e tecnologia ganham destaque.
 - O robô na Vercel chama processar() para responder /vigentes, /pregoes e /buscar.
 """
 import json
@@ -19,9 +19,10 @@ from app.config import settings
 PNCP = "https://pncp.gov.br/api/consulta/v1/contratacoes/proposta"
 TRINDADE_IBGE = "5221403"
 VIZINHAS = {  # códigos do IBGE
-    "5208707": "Goiânia", "5201405": "Aparecida de Goiânia", "5208806": "Goianira",
+    "5201405": "Aparecida de Goiânia", "5208806": "Goianira",
     "5200050": "Abadia de Goiás", "5219100": "Santa Bárbara de Goiás", "5204607": "Campestre de Goiás",
     "5209200": "Guapó", "5205208": "Caturaí",
+    "5208707": "Goiânia",  # por último: é a maior e não pode atrasar as outras
 }
 # "sistema" sozinho fica de fora: aparece em "Sistema de Registro de Preços" e "Sistema Único de Saúde"
 TECNOLOGIA = re.compile(
@@ -29,6 +30,8 @@ TECNOLOGIA = re.compile(
     r"sistemas? (informatizados?|de informacao|de gestao|web)|desenvolvimento de (sistemas?|sites?)|"
     r"licencas? de uso|websites?|criacao de sites?|sitio eletronico|aplicativos?|internet|"
     r"rede de dados|data ?center|equipamentos de ti)\b")
+# compra de produtos: o que interessa para quem quer comprar e revender
+COMPRA = re.compile(r"\b(aquisicao|aquisicoes|fornecimento|compra de)\b")
 BRASILIA = timezone(timedelta(hours=-3))
 PREGOES = (6, 7)
 TODAS = (4, 5, 6, 7, 8, 12)  # concorrência, pregão, dispensa e credenciamento
@@ -88,18 +91,22 @@ def eh_tecnologia(i: dict) -> bool:
     return bool(TECNOLOGIA.search(_sem_acento(i.get("objetoCompra") or "")))
 
 
+def eh_compra(i: dict) -> bool:
+    return bool(COMPRA.search(_sem_acento(i.get("objetoCompra") or "")))
+
+
 def buscar_regiao():
-    """Trindade completa + só tecnologia nas vizinhas. Devolve (itens, avisos, total de consultas)."""
+    """Todas as categorias em Trindade e nas vizinhas. Devolve (itens, avisos, total de consultas)."""
     itens, avisos = buscar(tentativas=3)
     avisos = [f"Trindade, {a}" for a in avisos]
     inicio = time.monotonic()
     for codigo, nome in VIZINHAS.items():
         # se o PNCP estiver muito lento, não deixa as vizinhas atrasarem o envio de Trindade
-        if time.monotonic() - inicio > 15 * 60:
+        if time.monotonic() - inicio > 18 * 60:
             avisos += [f"{nome}, modalidade {m}: tempo esgotado" for m in TODAS]
             continue
         achados, falhas = buscar(cidade=codigo, tentativas=2)
-        itens += filter(eh_tecnologia, achados)
+        itens += achados
         avisos += [f"{nome}, {a}" for a in falhas]
     itens.sort(key=lambda i: i.get("dataEncerramentoProposta") or "9999")
     return itens, avisos, len(TODAS) * (1 + len(VIZINHAS))
@@ -109,11 +116,11 @@ def resumo(i: dict) -> str:
     cnpj = (i.get("orgaoEntidade") or {}).get("cnpj")
     prazo = _prazo(i)
     cidade = (i.get("unidadeOrgao") or {}).get("municipioNome") or "Cidade não informada"
-    destaque = "⭐ TECNOLOGIA | " if eh_tecnologia(i) else ""
+    destaque = ("🛒 COMPRA | " if eh_compra(i) else "") + ("⭐ TECNOLOGIA | " if eh_tecnologia(i) else "")
     return "\n".join([
         f"{destaque}{cidade}",
         f"{i.get('modalidadeNome')} {i.get('numeroCompra')}/{i.get('anoCompra')}",
-        str(i.get("objetoCompra") or "")[:300],
+        str(i.get("objetoCompra") or "")[:220],
         f"Propostas até {prazo:%d/%m/%Y %H:%M}" if prazo else "Prazo não informado",
         f"https://pncp.gov.br/app/editais/{cnpj}/{i.get('anoCompra')}/{i.get('sequencialCompra')}",
     ])
@@ -184,8 +191,12 @@ def _alertas_de_prazo(item: dict, agora: datetime) -> list:
     return [dias for dias in (3, 1) if prazo - agora <= timedelta(days=dias)]
 
 
-def monitorar(pausa: float = 1.5, resumo_diario: bool = False) -> int:
-    """Envia o resumo diário ou as novidades, e os alertas de prazo. Devolve quantas mensagens enviou."""
+def _em_trindade(i: dict) -> bool:
+    return (i.get("unidadeOrgao") or {}).get("municipioNome") in (None, "Trindade")
+
+
+def monitorar(pausa: float = 3, resumo_diario: bool = False) -> int:
+    """Envia as novidades, os alertas de prazo e o resumo diário. Devolve quantas mensagens enviou."""
     destino = settings.dono_chat_id
     if not destino:
         raise SystemExit("Cadastre o secret TELEGRAM_DONO (seu número no Telegram).")
@@ -196,42 +207,60 @@ def monitorar(pausa: float = 1.5, resumo_diario: bool = False) -> int:
         raise SystemExit("PNCP indisponível.")
     arquivo = settings.data_dir / "licitacoes_vistas.json"
     arquivo.parent.mkdir(parents=True, exist_ok=True)
-    primeira = not arquivo.exists()
     # guarda os ids já enviados e as marcas de prazo já alertadas ("id|3", "id|1")
-    vistas = set() if primeira else set(json.loads(arquivo.read_text()))
+    vistas = set(json.loads(arquivo.read_text())) if arquivo.exists() else set()
     agora = datetime.now(BRASILIA)
     enviadas = 0
+    # Trindade primeiro, depois compras; dentro de cada grupo vale o prazo (a ordenação é estável)
+    itens.sort(key=lambda i: (not _em_trindade(i), not eh_compra(i)))
 
-    def mandar(texto: str, marcas: list):
+    def mandar(titulo: str, entradas: list):
+        """entradas: pares (texto, marcas). Agrupa em poucas mensagens e salva o que já foi enviado."""
         nonlocal enviadas
-        enviar(destino, texto)
-        enviadas += 1
-        vistas.update(marcas)
-        arquivo.write_text(json.dumps(sorted(vistas)))
-        time.sleep(pausa)
+        grupos, texto, marcas = [], titulo, []
+        for bloco, novas_marcas in entradas:
+            if texto != titulo and len(texto) + len(bloco) + 2 > 3800:
+                grupos.append((texto, marcas))
+                texto, marcas = titulo, []
+            texto += "\n\n" + bloco
+            marcas = marcas + novas_marcas
+        grupos.append((texto, marcas))
+        for texto, marcas in grupos:
+            enviar(destino, texto)
+            enviadas += 1
+            vistas.update(marcas)
+            arquivo.write_text(json.dumps(sorted(vistas)))
+            time.sleep(pausa)
 
-    if resumo_diario or primeira:
-        alerta = [f"Atenção: lista incompleta, {len(avisos)} consulta(s) ao PNCP falharam."] if avisos else []
-        titulo = (f"Resumo de {agora:%d/%m}: {len(itens)} oportunidade(s) aberta(s)\n"
-                  "Trindade: todas. Cidades vizinhas: só tecnologia.")
-        mensagens = dividir([titulo, *alerta, *map(resumo, itens)])
-        for numero, mensagem in enumerate(mensagens, 1):
-            # só marca como vistas depois que a última parte for enviada
-            mandar(mensagem, [i["numeroControlePNCP"] for i in itens] if numero == len(mensagens) else [])
-    else:
-        for item in itens:
-            chave = item["numeroControlePNCP"]
-            if chave not in vistas:
-                marcas = [f"{chave}|{d}" for d in _alertas_de_prazo(item, agora)]
-                mandar("Nova oportunidade\n" + resumo(item), [chave, *marcas])
+    novas = []
+    for item in itens:
+        chave = item["numeroControlePNCP"]
+        if chave not in vistas:
+            marcas = [f"{chave}|{d}" for d in _alertas_de_prazo(item, agora)]
+            novas.append((resumo(item), [chave, *marcas]))
+    if novas:
+        mandar(f"Novas oportunidades: {len(novas)}", novas)
 
+    alertas = []
     for item in itens:
         chave = item["numeroControlePNCP"]
         dias = _alertas_de_prazo(item, agora)
-        pendentes = [d for d in dias if f"{chave}|{d}" not in vistas]
-        if pendentes:
+        if any(f"{chave}|{d}" not in vistas for d in dias):
             falta = "menos de 24 horas" if 1 in dias else "3 dias ou menos"
-            mandar(f"⏰ Prazo encerrando: {falta}\n" + resumo(item), [f"{chave}|{d}" for d in dias])
+            alertas.append((f"Falta {falta}\n" + resumo(item), [f"{chave}|{d}" for d in dias]))
+    if alertas:
+        mandar("⏰ Prazo encerrando", alertas)
+
+    if resumo_diario:
+        semana = agora + timedelta(days=7)
+        destaques = [i for i in itens if _em_trindade(i)
+                     or (eh_compra(i) and _prazo(i) and _prazo(i) <= semana)]
+        titulo = (f"Resumo de {agora:%d/%m}: {len(itens)} aberta(s), "
+                  f"{sum(map(eh_compra, itens))} de compra.\n"
+                  "Abaixo: Trindade e compras da região que encerram em 7 dias.")
+        if avisos:
+            titulo += f"\nAtenção: lista incompleta, {len(avisos)} consulta(s) ao PNCP falharam."
+        mandar(titulo, [(resumo(i), []) for i in destaques])
     return enviadas
 
 
