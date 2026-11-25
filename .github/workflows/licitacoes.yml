@@ -2,11 +2,12 @@ name: Monitorar licitações
 
 on:
   schedule:
-    - cron: "23 * * * *"  # de hora em hora
+    - cron: "23 * * * *"  # novidades e prazos, de hora em hora
+    - cron: "7 10 * * *"  # resumo diário às 7h07 de Brasília (10h07 UTC)
   workflow_dispatch:
     inputs:
       enviar_todas:
-        description: "Enviar agora todas as licitações vigentes"
+        description: "Enviar agora o resumo com todas as oportunidades"
         type: boolean
         default: false
 
@@ -20,6 +21,7 @@ concurrency:
 jobs:
   monitorar:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -38,7 +40,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_DONO: ${{ secrets.TELEGRAM_DONO }}
-          ENVIAR_TODAS: ${{ inputs.enviar_todas }}
+          RESUMO: ${{ inputs.enviar_todas == true || github.event.schedule == '7 10 * * *' }}
       - name: Guardar licitações já avisadas
         if: always() && hashFiles('data/licitacoes_vistas.json') != ''
         uses: actions/cache/save@v4
