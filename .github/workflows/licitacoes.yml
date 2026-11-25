@@ -1,0 +1,47 @@
+name: Monitorar licitações
+
+on:
+  schedule:
+    - cron: "23 * * * *"  # de hora em hora
+  workflow_dispatch:
+    inputs:
+      enviar_todas:
+        description: "Enviar agora todas as licitações vigentes"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: licitacoes
+  cancel-in-progress: false
+
+jobs:
+  monitorar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Recuperar licitações já avisadas
+        uses: actions/cache/restore@v4
+        with:
+          path: data
+          key: licitacoes-${{ github.run_id }}
+          restore-keys: licitacoes-
+      - name: Conferir o PNCP e avisar
+        run: python -m app.licitacoes
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_DONO: ${{ secrets.TELEGRAM_DONO }}
+          ENVIAR_TODAS: ${{ inputs.enviar_todas }}
+      - name: Guardar licitações já avisadas
+        if: always() && hashFiles('data/licitacoes_vistas.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: data
+          key: licitacoes-${{ github.run_id }}-${{ github.run_attempt }}
