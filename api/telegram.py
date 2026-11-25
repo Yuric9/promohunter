@@ -11,7 +11,7 @@ from urllib.parse import parse_qs, urlparse
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app import bot  # noqa: E402
+from app import bot, licitacoes  # noqa: E402
 from app.config import settings  # noqa: E402
 
 
@@ -29,7 +29,7 @@ class handler(BaseHTTPRequestHandler):
             return self._enviar(403, "proibido")
         tamanho = int(self.headers.get("Content-Length") or 0)
         try:
-            bot.processar(json.loads(self.rfile.read(tamanho) or b"{}"))
+            licitacoes.processar(json.loads(self.rfile.read(tamanho) or b"{}"))
         except Exception as e:  # responde 200 mesmo assim, para o Telegram não reenviar sem parar
             print("Erro ao processar mensagem:", repr(e))
         self._enviar(200, "ok")
