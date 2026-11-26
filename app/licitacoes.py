@@ -1,6 +1,7 @@
 """
 Licitações em aberto de Trindade-GO e cidades próximas (fonte: API pública do PNCP).
-- GitHub Actions roda `python -m app.licitacoes`: avisa as novas, alerta prazos e manda o resumo diário.
+- GitHub Actions roda `python -m app.licitacoes`: avisa as novas, alerta prazos e manda o resumo diário
+  ao dono e ao canal público.
   Entram todas as categorias, em Trindade e nas vizinhas; compras e tecnologia ganham destaque.
 - O robô na Vercel chama processar() para responder /vigentes, /pregoes e /buscar.
 """
@@ -18,6 +19,8 @@ from app.config import settings
 
 PNCP = "https://pncp.gov.br/api/consulta/v1/contratacoes/proposta"
 TRINDADE_IBGE = "5221403"
+# canal público que recebe as mesmas publicações; o robô precisa ser administrador dele
+CANAL = os.getenv("LICITACOES_CANAL", "@licitacoestrindade")
 VIZINHAS = {  # códigos do IBGE
     "5201405": "Aparecida de Goiânia", "5208806": "Goianira",
     "5200050": "Abadia de Goiás", "5219100": "Santa Bárbara de Goiás", "5204607": "Campestre de Goiás",
@@ -211,6 +214,7 @@ def monitorar(pausa: float = 3, resumo_diario: bool = False) -> int:
     vistas = set(json.loads(arquivo.read_text())) if arquivo.exists() else set()
     agora = datetime.now(BRASILIA)
     enviadas = 0
+    enviadas_canal, falhas_canal = [], []
     # Trindade primeiro, depois compras; dentro de cada grupo vale o prazo (a ordenação é estável)
     itens.sort(key=lambda i: (not _em_trindade(i), not eh_compra(i)))
 
@@ -230,6 +234,14 @@ def monitorar(pausa: float = 3, resumo_diario: bool = False) -> int:
             enviadas += 1
             vistas.update(marcas)
             arquivo.write_text(json.dumps(sorted(vistas)))
+            if CANAL:
+                # uma falha no canal não pode impedir o aviso ao dono
+                try:
+                    enviar(CANAL, texto)
+                    enviadas_canal.append(texto)
+                except (RuntimeError, requests.RequestException) as e:
+                    falhas_canal.append(type(e).__name__ if isinstance(e, requests.RequestException) else str(e))
+                    print("Falha no canal:", falhas_canal[-1])
             time.sleep(pausa)
 
     novas = []
@@ -261,6 +273,11 @@ def monitorar(pausa: float = 3, resumo_diario: bool = False) -> int:
         if avisos:
             titulo += f"\nAtenção: lista incompleta, {len(avisos)} consulta(s) ao PNCP falharam."
         mandar(titulo, [(resumo(i), []) for i in destaques])
+    if CANAL:
+        print(f"Canal {CANAL}: {len(enviadas_canal)} enviada(s), {len(falhas_canal)} falha(s).")
+    if falhas_canal:
+        # a execução fica vermelha no GitHub para o problema não passar despercebido
+        raise SystemExit("O canal recusou mensagens. Confira se o robô é administrador com permissão de publicar.")
     return enviadas
 
 
